@@ -25,16 +25,18 @@ create table infinite_verbs (
 
 
 create table louw_nida_domains (
+  wordref varchar,
   lemma varchar,
   louw_nida_domain varchar
 );
-create unique index on louw_nida_domains(lemma, louw_nida_domain);
+create unique index on louw_nida_domains(wordref, louw_nida_domain);
 
 create table louw_nida_subdomains (
+  wordref varchar,
   lemma varchar,
   louw_nida_subdomain varchar
 );
-create unique index on louw_nida_subdomains(lemma, louw_nida_subdomain);
+create unique index on louw_nida_subdomains(wordref, louw_nida_subdomain);
   
   
 

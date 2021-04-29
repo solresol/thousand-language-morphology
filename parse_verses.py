@@ -80,17 +80,17 @@ for book_file in ['01_matthew_full', '02_mark_full', '03_luke_full', '04_john_fu
                                    word.attrib['case'],
                                    word.attrib['number']])
             for d in word.attrib['domains'].split():
-                read_cursor.execute("select count(*) from louw_nida_domains where lemma = %s and louw_nida_domain = %s", [lemma, d])
+                read_cursor.execute("select count(*) from louw_nida_domains where wordref = %s and louw_nida_domain = %s", [wordref, d])
                 if read_cursor.fetchone()[0] > 0:
                     continue
-                write_cursor.execute("insert into louw_nida_domains (lemma, louw_nida_domain) values (%s, %s)", [lemma, d])
+                write_cursor.execute("insert into louw_nida_domains (wordref, lemma, louw_nida_domain) values (%s, %s, %s)", [wordref, lemma, d])
 
 
             for sd in word.attrib.get('subdomains', '').split():
-                read_cursor.execute("select count(*) from louw_nida_subdomains where lemma = %s and louw_nida_subdomain = %s", [lemma, sd])
+                read_cursor.execute("select count(*) from louw_nida_subdomains where wordref = %s and louw_nida_subdomain = %s", [wordref, sd])
                 if read_cursor.fetchone()[0] > 0:
                     continue
-                write_cursor.execute("insert into louw_nida_subdomains (lemma, louw_nida_subdomain) values (%s, %s)", [lemma, sd])
+                write_cursor.execute("insert into louw_nida_subdomains (wordref, lemma, louw_nida_subdomain) values (%s, %s, %s)", [wordref, lemma, sd])
             conn.commit()
         # elif pos == 'finite':
         #     finite_verbs.append(
