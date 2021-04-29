@@ -19,9 +19,24 @@ Building from scratch
 
 This not complete yet.
 
-1. `git clone git@github.com:OpenText-org/GNT_annotation_v1.0.git`
+1. `git clone git@github.com:OpenText-org/GNT_annotation_v1.0.git` in some directory.
 
-2. Run `parse_verses.ipynb`
+2. Create a postgresql database with utf8 encoding -- `createdb --encoding=utf8 --template=template8 thousand_language`
 
-3. (More to come)
+3. Create a user with write permissions to all the tables in the database.
+
+4. Create a file `db.conf`
+
+```
+[database]
+dbname=thousand_language
+user=gntwriter
+password=whateverpasswordyouused
+host=localhost
+port=5432
+```
+
+5. Run `parse_verses.py` . If necessary add `--verbose` or `--opentext-location` or `--database-config`
+
+6. (More to come)
 
