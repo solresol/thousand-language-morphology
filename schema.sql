@@ -81,6 +81,13 @@ create view verses_worth_fetching as
  -- in time I will add other unions. 
  -- I might also have to figure out how to do the split_part function in sqlite
 
+create view number_of_verses_worth_fetching as
+   select count(*) as verse_count from verses_worth_fetching;
+
+
+
+
+
 
 
 
@@ -127,10 +134,24 @@ create table verses (
 create unique index on verses(version_id, book, chapter, verse);
 create index on verses(book, chapter, verse);
 
-create view unfetched_verses as
+
+create view number_of_verses_fetched as
+  select version_id, count(verse_version_id) as verses_fetched
+    from bible_versions left join verses using (version_id)
+   group by version_id;
+  
+create view incomplete_versions as
+   select version_id from number_of_verses_fetched
+     where verses_fetched < (select verse_count from number_of_verses_worth_fetching);
+
+create view all_verse_version_combinations as
   select version_id, book, chapter, verse 
-    from bible_versions, verses_worth_fetching 
-  EXCEPT
-   select version_id, book, chapter, verse
-    from verses;
+    from bible_versions, verses_worth_fetching;
+
+create view unfetched_verses as
+ select version_id, book, chapter, verse
+   from  all_verse_version_combinations left join verses using (version_id, book, chapter, verse)
+  where verses.verse_version_id is null;
+  
+  
 
