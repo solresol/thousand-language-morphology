@@ -11,6 +11,7 @@ parser.add_argument("--verbose", action="store_true")
 parser.add_argument("--one-language-only", action="store_true")
 parser.add_argument("--progress", action="store_true")
 parser.add_argument("--firefox-path")
+parser.add_argument("--show-browser", action="store_true")
 args = parser.parse_args()
 
 import pandas
@@ -21,8 +22,8 @@ import configparser
 import psycopg2
 import functools
 import time
-
-
+from bs4 import BeautifulSoup
+import selenium.webdriver
 
 if args.verbose:
     logging.basicConfig(
@@ -51,9 +52,12 @@ if args.one_language_only:
     query += " limit 1"
 version_cursor.execute(query)
 
-import selenium.webdriver
 options = selenium.webdriver.firefox.options.Options()
-options.headless = True
+if args.show_browser:
+    pass
+else:
+    options.headless = True
+
 logging.info("Launching firefox")
 if args.firefox_path is not None:
     driver = selenium.webdriver.Firefox(options=options,
