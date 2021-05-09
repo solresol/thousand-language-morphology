@@ -96,7 +96,7 @@ def get_verse_content(language_code, short_code, book, chapter, verse):
     logging.info(f"Getting {language_code} {short_code} {book} {chapter} {verse}")
     soup = get_url_content(bible_dot_com_url(language_code, short_code, book, chapter))
     spans = soup.find_all('span', class_='verse')
-    usfm_to_look_for = bible_dot_com_usfm(verseref)
+    usfm_to_look_for = bible_dot_com_usfm(book, chapter, verse)
     answer = ''
     for span in spans:
         content = span.find_all('span', class_='content')
