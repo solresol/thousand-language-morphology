@@ -79,7 +79,10 @@ def bible_dot_com_url(language_code, short_code, book, chapter, verse=None):
     return url
 
 def bible_dot_com_usfm(book, chapter, verse):
-    return f'{book_url}.{chapter}.{verse}'
+    book_url = book_translation[book]    
+    answer = f'{book_url}.{chapter}.{verse}'
+    logging.info(f"bible_dot_com_usfm({book}, {chapter}, {verse}) = {answer}")
+    return answer
 
 @functools.lru_cache(2**18)
 def get_url_content(url):
