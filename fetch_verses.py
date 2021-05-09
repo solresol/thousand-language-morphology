@@ -105,7 +105,7 @@ def get_verse_content(language_code, short_code, book, chapter, verse):
         content = span.find_all('span', class_='content')
         if span['data-usfm'] == usfm_to_look_for:
             for c in content:
-                logging.info(" + {c.text}")
+                logging.info(f" + {c.text}")
                 answer += c.text
     return answer.strip()
 
@@ -134,6 +134,6 @@ for version_cursor_row in version_cursor:
         logging.info(f"Storing {version_id} {b} {c} {v} = {content}")
         write_cursor.execute("insert into verses (version_id, book, chapter, verse, passage) values (%s, %s, %s, %s, %s)",
                              [version_id, b, c, v, content])
-        db.commit()
+        conn.commit()
 
 driver.quit()
