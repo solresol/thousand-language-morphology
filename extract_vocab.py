@@ -114,12 +114,12 @@ singplur['verseref'] = singplur.book + " " + singplur.chapter.map(str) + ':' + s
 
 logging.info(f"Reading verses from version_id = {version}")
 this_version_verses = pandas.read_sql(
-    f"""select * from verses where version_id = {version}""", engine)
+    f"""select book, chapter, verse, passage from verses where version_id = {version}""", engine)
 this_version_verses['verseref'] = this_version_verses.book + " " + this_version_verses.chapter.map(str) + ':' + this_version_verses.verse.map(str)
-
+logging.info(f"{args.bible_version_name} [version_id={version}] has {this_version_verses.shape[0]} verses")
 
 # I can't remember what I was doing here
-logging.info("Taking each word and see what verses it is in")
+logging.info("Taking each word and seeing what verses it is in")
 reverse_records = []
 total_verses_in_translation = 0
 for (b,c,v,p) in zip(this_version_verses.book, this_version_verses.chapter, this_version_verses.verse,
@@ -128,7 +128,10 @@ for (b,c,v,p) in zip(this_version_verses.book, this_version_verses.chapter, this
     words = canonical_everygrams(nltk.word_tokenize(p))
     for w in words:
         reverse_records.append({'word': w, 'book': b, 'chapter': c, 'verse': v})
+
+logging.info("Creating reverse record dataframe")
 reverse_records_df = pandas.DataFrame.from_records(reverse_records).drop_duplicates()
+logging.info(f"Shape of reverse record dataframe = {reverse_records_df.shape}")
 reverse_records_df['verseref'] = reverse_records_df.book + " " + reverse_records_df.chapter.map(str) + ':' + reverse_records_df.verse.map(str)
 
 logging.info("Finding each lemma (regardless of form) and finding what verses it appears in")
