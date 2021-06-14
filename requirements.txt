@@ -1,2 +1,5 @@
 pandas
 psycopg2
+selenium
+bs4
+tqdm

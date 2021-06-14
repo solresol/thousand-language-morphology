@@ -38,5 +38,7 @@ port=5432
 
 5. Run `parse_verses.py` . If necessary add `--verbose` or `--opentext-location` or `--database-config`
 
+6. Run `make enrichment/language-codes.csv`
+
 6. (More to come)
 
