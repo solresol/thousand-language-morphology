@@ -53,15 +53,27 @@ if args.verbose:
 logging.info("Pre-processing version information")
 dependencies = []
 extractors = []
+
+segmentations =  {
+    'unigram': "",
+    'bigram': "--ngram-max-tokens 2",
+    'trigram': "--ngram-max-tokens 3",
+    'uni_token': "--tokengrams",
+    'bi_token': "--ngram-max-tokens 2 --tokengrams",
+    'tri_token': "--ngram-max-tokens 3 --tokengrams",
+    'quad_token': "--ngram-max-tokens 4 --tokengrams"
+}
+
 for version_id, version_name, language in iterator:
     if version_name.strip() == '':
         continue
     underscore_name = version_name.replace(' ','_')
-    pathname = f"extracts/by-language/{language}/{underscore_name}.csv"
-    dependencies.append(pathname)
-    extractors.append(f"""
+    for segmentation in segmentations:
+        pathname = f"extracts/by-language/{language}/{segmentation}/{underscore_name}.csv"
+        dependencies.append(pathname)
+        extractors.append(f"""
 {pathname}: extract_vocab.py db.conf
-	python extract_vocab.py --word-pairs-output $@ --bible '{version_name}' --verbose
+	python extract_vocab.py --word-pairs-output $@ --bible '{version_name}' --verbose {segmentations[segmentation]}
 """)
 
 logging.info(f"Writing {args.makefile}")
