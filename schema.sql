@@ -117,7 +117,8 @@ create table bible_versions (
  language varchar,
  grouping_code varchar,
  short_code varchar,
- version_name varchar
+ version_name varchar,
+ version_worth_fetching bool default true
 );
 create unique index on bible_versions(language, grouping_code, short_code);
 
@@ -138,6 +139,7 @@ create index on verses(book, chapter, verse);
 create view number_of_verses_fetched as
   select version_id, count(verse_version_id) as verses_fetched
     from bible_versions left join verses using (version_id)
+   where version_worth_fetching 
    group by version_id;
   
 create view incomplete_versions as
@@ -155,3 +157,8 @@ create view unfetched_verses as
   
   
 
+create table wikidata_iso639_codes (
+  wikidata_entity varchar,
+  iso_639_3_code varchar
+);
+create index on wikidata_iso639_codes(iso_639_3_code);
