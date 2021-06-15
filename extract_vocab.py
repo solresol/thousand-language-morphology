@@ -28,6 +28,9 @@ parser.add_argument("--ngram-max-tokens",
                     type=int,
                     default=1,
                     help="High-end for range of n-gram lengths")
+parser.add_argument("--tokengrams",
+                    action='store_true',
+                    help="Don't split at the word-level, split at n-grams")
 
 
 args = parser.parse_args()
@@ -80,6 +83,10 @@ def everygram_generator(sequence, min_tokens=1, max_tokens=None):
                 yield sequence[i:i+j]
                 
 def canonical_everygrams(sequence):
+    if args.tokengrams:
+        sequence = sequence
+    else:
+        sequence = nltk.word_tokenize(sequence)
     return [" ".join(x)
             for x in everygram_generator(sequence,
                                          min_tokens=args.ngram_min_tokens,
@@ -125,7 +132,7 @@ total_verses_in_translation = 0
 for (b,c,v,p) in zip(this_version_verses.book, this_version_verses.chapter, this_version_verses.verse,
        this_version_verses.passage):
     total_verses_in_translation += 1
-    words = canonical_everygrams(nltk.word_tokenize(p))
+    words = canonical_everygrams(p)
     for w in words:
         reverse_records.append({'word': w, 'book': b, 'chapter': c, 'verse': v})
 
@@ -174,8 +181,7 @@ for row in iterator:
     verses_for_this_row = 0
     for passage in temp_df.passage:
         verses_for_this_row += 1
-        words = canonical_everygrams(nltk.word_tokenize(passage))
-        # I should also have a variant where I look at glyph-level n-grams
+        words = canonical_everygrams(passage)
         for word in set(words):
             ngram_appearances_in_verses[word] += 1
     verses_with_the_lemma = raw_lemma_lookup[raw_lemma_lookup.lemma == lemma].verseref.unique()
