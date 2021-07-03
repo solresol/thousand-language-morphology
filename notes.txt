@@ -1,0 +1,65 @@
+Mention it to /u/BlackPythonGuru on reddit
+
+
+
+----------------------------------------------------------------------
+
+9th May -- getting about 17 right out of 48 words...
+
+0	blasphemy	blasphemies
+1	generation	generations
+2	vine	farmers
+3	scribe	scribes
+4	Scripture	Scriptures
+5	demon	,
+6	servant	drawn
+7	power	,
+8	,	Daughters
+9	.	captive
+10	thief	thieves
+11	branch	vine
+12	nursed	wombs
+13	judge	judges
+14	.	stones
+15	severe	famines
+16	famine	terrors
+17	robber	robbers
+18	deceitfulness	lusts
+19	disciple	disciples
+20	tomb	who
+21	,	directly
+22	child	.
+23	Immanuel	virgins
+24	boat	Tiberias
+25	boat	Leaving
+26	shepherd	shepherds
+27	stream	.
+28	Behold	famines
+29	sign	signs
+30	body	bodies
+31	.	“
+32	collector	collectors
+33	sister	sisters
+34	brother	brothers
+35	greater	apostles
+36	priest	priests
+37	east	stars
+38	sin	forgiven
+39	angel	angels
+40	wind	The
+41	bread	”
+42	laborer	.
+43	nation	.
+44	priest	profane
+45	eye	eyes
+46	guides	guides
+47	,	daylight
+48	.	.
+
+----------------------------------------------------------------------
+
+
+- Esperanto demonstrates that I'm only handling ascii characters correctly
+- Extract a bunch more languages
+- Try RANSAC, Theil-Sen
+- Wikidata via isocodes
