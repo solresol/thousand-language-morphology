@@ -36,15 +36,17 @@ host=localhost
 port=5432
 ```
 
-5. Run `parse_verses.py` . If necessary add `--verbose` or `--opentext-location` or `--database-config`
+5. `pip3 install --user -r requirements.txt`
 
-6. Run the `datacleaning.sql` file using `psql`
+6. Run `parse_verses.py` . If necessary add `--verbose` or `--opentext-location` or `--database-config`
 
-6. Run `python makefile_generator.py`
+7. Run the `datacleaning.sql` file using `psql`
 
-7. Run `make`
+8. Run `python makefile_generator.py`
 
-8. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
+9. Run `make`
 
-9. (More to come)
+10. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
+
+11. (More to come)
 
