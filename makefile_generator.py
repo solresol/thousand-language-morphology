@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -70,10 +70,11 @@ for version_id, version_name, language in iterator:
     underscore_name = version_name.replace(' ','_')
     for segmentation in segmentations:
         pathname = f"extracts/by-language/{language}/{segmentation}/{underscore_name}.csv"
+        translation_record_pathname = f"translations/by-language/{language}/{segmentation}/{underscore_name}.csv"
         dependencies.append(pathname)
         extractors.append(f"""
 {pathname}: extract_vocab.py db.conf
-	python extract_vocab.py --word-pairs-output $@ --bible '{version_name}' --verbose {segmentations[segmentation]}
+	python3 extract_vocab.py --word-pairs-output $@ --translation {translation_record_pathname} --bible '{version_name}' --verbose {segmentations[segmentation]} 
 """)
 
 logging.info(f"Writing {args.makefile}")
