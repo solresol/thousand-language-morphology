@@ -252,8 +252,11 @@ noun_vocab.sort_values('confidence')
 
 
 if args.translation_output is not None:
+    logging.info(f"Writing {args.translation_output}")
     output = noun_vocab.sort_values('confidence')
     output['is_correct'] = ''
+    output_directory = os.path.dirname(args.translation_output)
+    os.makedirs(output_directory, exist_ok = True)
     output.to_csv(args.translation_output, sep='\t')
 
 
@@ -277,6 +280,7 @@ for (lemma, gender, noun_case) in multi_number_nouns.index:
 word_number_pairs = pandas.DataFrame.from_records(word_number_pairs)
 
 if args.word_pairs_output is not None:
+    logging.info(f"Writing {args.word_pairs_output}")
     output_file = args.word_pairs_output
     output_directory = os.path.dirname(output_file)
     os.makedirs(output_directory, exist_ok = True)
