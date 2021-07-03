@@ -63,7 +63,7 @@ create view lemmas_with_repeated_singular_and_plural as
 
 
 create view verses_worth_fetching as
-  select 
+  select
     split_part(wordref,'.',2) as book,
     cast(split_part(wordref,'.',3) as int) as chapter,
     cast(split_part(wordref,'.',4) as int) as verse
@@ -71,14 +71,14 @@ create view verses_worth_fetching as
      using (lemma, gender, noun_case)
     where noun_number in ('singular', 'plural')
   UNION
-  select 
+  select
     split_part(wordref,'.',2) as book,
     cast(split_part(wordref,'.',3) as int) as chapter,
     cast(split_part(wordref,'.',4) as int) as verse
    from lemmas_with_repeated_nominative_and_accusative join common_nouns
      using (lemma, gender, noun_number)
     where noun_number in ('nominative', 'accusative');
- -- in time I will add other unions. 
+ -- in time I will add other unions.
  -- I might also have to figure out how to do the split_part function in sqlite
 
 create view number_of_verses_worth_fetching as
@@ -107,8 +107,8 @@ create table louw_nida_subdomains (
   louw_nida_subdomain varchar
 );
 create unique index on louw_nida_subdomains(wordref, louw_nida_subdomain);
-  
-  
+
+
 
 
 
@@ -139,23 +139,22 @@ create index on verses(book, chapter, verse);
 create view number_of_verses_fetched as
   select version_id, count(verse_version_id) as verses_fetched
     from bible_versions left join verses using (version_id)
-   where version_worth_fetching 
+   where version_worth_fetching
    group by version_id;
-  
+
 create view incomplete_versions as
    select version_id from number_of_verses_fetched
      where verses_fetched < (select verse_count from number_of_verses_worth_fetching);
 
 create view all_verse_version_combinations as
-  select version_id, book, chapter, verse 
+  select version_id, book, chapter, verse
     from bible_versions, verses_worth_fetching;
 
 create view unfetched_verses as
  select version_id, book, chapter, verse
    from  all_verse_version_combinations left join verses using (version_id, book, chapter, verse)
   where verses.verse_version_id is null;
-  
-  
+
 
 create table wikidata_iso639_codes (
   wikidata_entity varchar,
