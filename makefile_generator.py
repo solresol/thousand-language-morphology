@@ -2,7 +2,7 @@
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--release-version", default="0.001",
+parser.add_argument("--release-version", default="0.003",
                     help="Version number included in the Makefile header")
 parser.add_argument("--makefile", default="Makefile",
                     help="Filename to create")
@@ -43,7 +43,7 @@ outfile = open(args.makefile, 'w')
 
 logging.info(f"Finding downloaded bible versions")
 read_cursor.execute(
-    "select version_id, version_name, language from bible_versions where version_id not in (select version_id from incomplete_versions)"
+    "select version_id, version_name, language from bible_versions where version_worth_fetching and version_id not in (select version_id from incomplete_versions)"
 )
 iterator = read_cursor
 if args.verbose:
