@@ -50,3 +50,4 @@ port=5432
 
 11. (More to come)
 
+12. (Optional) Load the translation data into the database with `save_translations.py`
