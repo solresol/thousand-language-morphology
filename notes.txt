@@ -63,3 +63,14 @@ Mention it to /u/BlackPythonGuru on reddit
 - Extract a bunch more languages
 - Try RANSAC, Theil-Sen
 - Wikidata via isocodes
+
+
+
+----------------------------------------------------------------------
+
+Version_id = 1018 should be  "Bibilia, Buk na Ŋun nagon koti luŋu a"
+ -- but all the non-ascii characters are missing.
+
+----------------------------------------------------------------------
+
+We should have Newari (new) and Nepali (nep) and Garhwali languages (gbm)

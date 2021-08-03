@@ -3,3 +3,6 @@ GNT_annotation_v1.0
 db.conf
 *~
 Makefile
+.cache
+geckodriver.log
+tmp

@@ -1,0 +1,26 @@
+https://submissions.ldc.upenn.edu/corpus/new
+
+
+Nouns in more than a thousand languages
+
+----------------------------------------------------------------------
+
+This is an automatically-generated dataset, derived from translations of the four gospels of the New Testament.
+
+There are 161 nouns in the gospels that have the following properties:
+
+• The noun appears twice in the singular, in the same case and gender in Greek (e.g. a noun that appears twice in the nominative, singular, masculine case)
+
+• It also appears twice in the plural in the same case and gender.
+
+The assumption is then made that each of these nouns is translated consistently into a single word or single token. For each each single word (or single token) in the translated language, the probability that it is the translation of the Greek lemma is calculated using the binomial test based on their appearance in the corresponding verses. If no word (or token) is clearly identified as being the most probably translation, then the Greek lemma is ignored for that language; if one word (or token) is the most probable, it is recorded in this dataset.
+
+This produces 161 lemmas that have translations.
+
+----------------------------------------------------------------------
+
+
+The underlying translations are owned by their respective copyright owners (quite often Wycliffe); some are public domain. The curated English translations of Greek lemmae are by Bill Mounce. The statistical analysis of the words in these translations is owned by me (Greg Baker).
+
+----------------------------------------------------------------------
+Bill Mounce has indicated that he is happy to see his translations referenced in scientific works, but asserts his copyright over the translations themselves. All other columns in this dataset are unconstrained.

@@ -90,7 +90,7 @@ for extractor in extractors:
 
 outfile.write("""
 enrichment/language-codes.csv:
-	curl -H "Accept: text/csv" -o $@ 'https://query.wikidata.org/sparql?query=SELECT%20*%20WHERE%20%7B%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%20%20%20%7B%20%3Fitem%20wdt%3AP220%20%3FISO_639_3_code.%20%7D%0A%7D%0A' 
+	curl -H "Accept: text/csv" -o $@ 'https://query.wikidata.org/sparql?query=SELECT%20%3Fitem%20%3FitemLabel%20%3FISO_639_3_code%20%0AWHERE%20%7B%20%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%20%20%7B%20%3Fitem%20wdt%3AP220%20%3FISO_639_3_code.%20%7D%0A%7D%0A'
 
 db.conf:
 	echo "You need to configure a database connection to do this step"
