@@ -370,3 +370,35 @@ create materialized view lemma_translation_counts as
    from vocabulary_extractions
   group by lemma, gender, noun_case, noun_number, tokenisation_method_id;
 
+create table machine_learning_methods (
+    ml_method varchar primary key
+);
+insert into machine_learning_methods values ('GlobalPadicLinear');
+insert into machine_learning_methods values ('GlobalSiegel');
+insert into machine_learning_methods values ('LocalPadicLinear');
+insert into machine_learning_methods values ('LocalEuclideanSiegel');
+insert into machine_learning_methods values ('HybridSiegel');
+
+create table machine_learning_morphology_scoring (
+    mlm_score_id serial primary key,
+    bible_version_id int            references bible_versions (version_id),
+    tokenisation_method_id varchar  references tokenisation_methods(tokenisation_method_id),
+    calculation_algorithm varchar   references machine_learning_methods(ml_method),
+    algorithm_region_size_parameter int,
+    result_version varchar,
+    answers_correct int not null check (answers_correct >= 0),
+    answers_wrong int not null check (answers_wrong >= 0),
+    total_vocab_size_checked int not null check (total_vocab_size_checked >= 0) 
+    CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or algorithm_region_size_parameter is not null),
+    CONSTRAINT all_vocab_accounted_for check (answers_correct + answers_wrong = total_vocab_size_checked)
+);
+create unique index on machine_learning_morphology_scoring (bible_version_id, tokenisation_method_id, 
+                                                            calculation_algorithm, algorithm_region_size_parameter, 
+                                                            result_version);
+
+create view broad_results_across_all_languages as
+ select calculation_algorithm,
+        avg(100.0 * answers_correct / nullif(total_vocab_size_checked, 0)) as percentage_correct_across_all_languages
+   from machine_learning_morphology_scoring
+   join bible_versions on (bible_version_id = version_id)
+  group by calculation_algorithm;
