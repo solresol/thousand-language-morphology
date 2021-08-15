@@ -388,7 +388,8 @@ create table machine_learning_morphology_scoring (
     result_version varchar,
     answers_correct int not null check (answers_correct >= 0),
     answers_wrong int not null check (answers_wrong >= 0),
-    total_vocab_size_checked int not null check (total_vocab_size_checked >= 0) 
+    total_vocab_size_checked int not null check (total_vocab_size_checked >= 0) ,
+    when_added date default current_date,
     CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or algorithm_region_size_parameter is not null),
     CONSTRAINT all_vocab_accounted_for check (answers_correct + answers_wrong = total_vocab_size_checked)
 );
