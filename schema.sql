@@ -409,3 +409,6 @@ create view broad_results_across_all_languages as
    from machine_learning_morphology_scoring
    join bible_versions on (bible_version_id = version_id)
   group by calculation_algorithm;
+
+
+create schema vocab_lists;
