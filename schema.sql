@@ -205,7 +205,7 @@ create view bible_version_language_wikidata as
     
 
 create table wikidata_geo (
-  entity varchar -- should be "references wikidata_iso639_codes(iso_639_3_code)" except that it's not unique there,
+  entity varchar -- should be "references wikidata_iso639_codes(entity)" except that it's not unique there,
   country varchar,
   indigenous_to_name varchar,
   indigenous_to_entity varchar,
@@ -410,5 +410,14 @@ create view broad_results_across_all_languages as
    join bible_versions on (bible_version_id = version_id)
   group by calculation_algorithm;
 
+
+create table language_orthography (
+  iso_639_3_code varchar primary key, -- should be foreign key actually
+  word_based boolean not null,
+  alphabetic boolean not null,
+  best_tokenisation_method not null varchar references tokenisation_methods(tokenisation_method_id)
+);
+  
+  
 
 create schema vocab_lists;

@@ -6,3 +6,5 @@ Makefile
 .cache
 geckodriver.log
 tmp
+ember
+ember*.zip
