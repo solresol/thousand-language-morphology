@@ -18,6 +18,12 @@ create table bill_mounce_glosses (
   gloss varchar
 );
 
+create table common_noun_baker_translations (
+  -- Less official even than Bill Mounce
+  lemma varchar primary key,
+  english_translation varchar
+);
+
 create table finite_verbs (
    wordref varchar primary key,
    lemma varchar,
