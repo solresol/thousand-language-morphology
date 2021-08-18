@@ -47,7 +47,13 @@ port=5432
 9. Run `make`
 
 10. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
+and run `refresh materialized view wikidata_iso639_codes`
 
-11. (More to come)
+11. Load `canonical-english.sql`
 
-12. (Optional) Load the translation data into the database with `save_translations.py`
+12. Load the translation data into the database with `save_translations.py` and then run
+`refresh materialized view vocabulary_sizes`
+`refresh materialized view vocabulary_sizes_crosstab` and
+`refresh materialized view lemma_translation_counts`
+
+13. Run `./make_vocab_lists.py`
