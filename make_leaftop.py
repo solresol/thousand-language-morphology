@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Create the LEAFTOP (language extracted automatically from thousands of passages) database
+
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -14,7 +16,7 @@ parser.add_argument("--verbose",
                     help="a few debugging messages")
 parser.add_argument("--output-directory",
                     help="where to put the output",
-                    default="ember")
+                    default="leaftop")
 
 
 args = parser.parse_args()
@@ -60,9 +62,9 @@ engine = sqlalchemy.create_engine(
 logging.info("Getting language information")
 
 language_cursor.execute("""
-select language, language_name, entity, version_id, short_code, version_name 
+select language, language_name, entity, version_id, short_code, version_name
    from bible_versions left join bible_version_language_wikidata using (version_id)
-  where version_worth_fetching 
+  where version_worth_fetching
 order by language_name, version_id""")
 
 iterator = language_cursor
@@ -137,6 +139,10 @@ for language_row in iterator:
     output_df.to_csv(
         os.path.join(args.output_directory,f"{this_language}-vocab.csv"),
                      index=False)
+    output_df.to_excel(
+        os.path.join(args.output_directory,f"{this_language}-vocab.xlsx"),
+                     freeze_panes=(1,0),
+                     index=False)
 
     meta_data_sentences = set()
     if entity is not None:
@@ -167,10 +173,10 @@ for language_row in iterator:
         with open(os.path.join(args.output_directory, f"{this_language}-metadata.txt"),'w') as meta:
             meta.write(f"{language_name} appears to be {'' if alphabetic else 'non-'}alphabetic. It is {'' if word_based else 'not '} written with spaces between words. As a result, this extract was calculated using the {best_output} method.\n")
             meta.write('\n'.join(sorted(list(meta_data_sentences))))
-        
-                
+
+
     conn.commit()
-    
+
 
 language_index = pandas.DataFrame.from_records(language_index_records)
 language_index.to_csv(
