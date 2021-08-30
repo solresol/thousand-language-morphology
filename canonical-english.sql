@@ -85,7 +85,7 @@ insert into common_noun_baker_translations (lemma, english_translation) values (
 insert into common_noun_baker_translations (lemma, english_translation) values ('σεισμός','earthquakes, storm');
 insert into common_noun_baker_translations (lemma, english_translation) values ('σημεῖον','sign');
 insert into common_noun_baker_translations (lemma, english_translation) values ('σκεῦος','possession, object, thing, jar, vessel');
-insert into common_noun_baker_translations (lemma, english_translation) values ('στάχυς','head of grade');
+insert into common_noun_baker_translations (lemma, english_translation) values ('στάχυς','head of grain');
 insert into common_noun_baker_translations (lemma, english_translation) values ('σταφυλή','grapes');
 insert into common_noun_baker_translations (lemma, english_translation) values ('στῆθος','chest, breast');
 insert into common_noun_baker_translations (lemma, english_translation) values ('συνέδριον','council');
@@ -152,3 +152,10 @@ insert into common_noun_baker_translations (lemma, english_translation) values (
 insert into common_noun_baker_translations (lemma, english_translation) values ('ὕδωρ','water');
 insert into common_noun_baker_translations (lemma, english_translation) values ('ὥρα','hour');
 insert into common_noun_baker_translations (lemma, english_translation) values ('ῥῆμα','word');
+insert into common_noun_baker_translations (lemma, english_translation) values ('καθηγητής','teacher, guide');
+insert into common_noun_baker_translations (lemma, english_translation) values ('κλείς','key');
+insert into common_noun_baker_translations (lemma, english_translation) values ('οἶκος','house, home');
+insert into common_noun_baker_translations (lemma, english_translation) values ('σύνδουλος','fellow-servant, colleague');
+insert into common_noun_baker_translations (lemma, english_translation) values ('ὀδούς','tooth');
+insert into common_noun_baker_translations (lemma, english_translation) values ('ῥάπισμα','slap, strike, hit');
+insert into common_noun_baker_translations (lemma, english_translation) values ('λύκος','wolf');
