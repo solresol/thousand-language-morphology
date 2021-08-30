@@ -57,3 +57,7 @@ and run `refresh materialized view wikidata_iso639_codes`
 `refresh materialized view lemma_translation_counts`
 
 13. Run `./make_vocab_lists.py`
+
+14. Run `./make_leaftop.py`
+
+15. Hire some translators to check the content in `leaftop/`
