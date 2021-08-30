@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+# This program is a memory hog when it doesn't need to be.
+# Sensibly, it should work through each lemma on its own, and then
+# store that in the database.
+# Less sensibly, it should look at words in context (and do some sort
+# of linear logic to eliminate words that can't be right)
+
+
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -8,6 +15,8 @@ parser.add_argument("--database-config",
                     default="db.conf")
 parser.add_argument("--bible-version-name",
                     help="name of the bible version to export")
+parser.add_argument("--bible-version-id",
+                    help="id of the bible version to export")
 
 parser.add_argument("--progress",
                     action="store_true",
@@ -15,6 +24,11 @@ parser.add_argument("--progress",
 parser.add_argument("--verbose",
                     action="store_true",
                     help="a few debugging messages")
+parser.add_argument("--dry-run",
+                    action="store_true",
+                    help="don't store the data back into the database")
+
+# These next two should become irrelevant
 parser.add_argument("--word-pairs-output",
                     help="CSV file to send singular and plural pairs to")
 parser.add_argument("--translation-output",
@@ -30,8 +44,11 @@ parser.add_argument("--ngram-max-tokens",
                     help="High-end for range of n-gram lengths")
 parser.add_argument("--tokengrams",
                     action='store_true',
-                    help="Don't split at the word-level, split at n-grams")
+                    help="Don't split at the word-level, split at n-tokens")
 
+parser.add_argument("--singplur-only",
+                    action='store_true',
+                    help="Only extract vocabulary where we have both a singular and plural form of the noun")
 
 args = parser.parse_args()
 
@@ -46,6 +63,7 @@ import scipy.stats
 import math
 import collections
 import os
+import sys
 
 if args.verbose:
     logging.basicConfig(
@@ -54,6 +72,22 @@ if args.verbose:
         datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Starting")
     args.progress = False
+
+tokenisation_methods = {
+    (False, 1) : 'unigram',
+    (False, 2) : 'bigram',
+    (False, 3) : 'trigram',
+    (True, 1) : 'uni_token',
+    (True, 2) : 'bi_token',
+    (True, 3) : 'tri_token',
+    (True, 4) : 'quad_token'
+}
+if not args.dry_run:
+    if (args.tokengrams, args.ngram_max_tokens) not in tokenisation_methods:
+        sys.exit(f"{args.tokengrams=} and {args.ngram_max_tokens=} is not a named tokenisation_method")
+    if args.ngram_min_tokens != 1:
+        sys.exit(f"The database isn't set up to handle {args.ngram_min_tokens=}; 1 is the only supported value at the moment")
+    tokenisation_method_id = tokenisation_methods[ (args.tokengrams, args.ngram_max_tokens)]
 
 
 config = configparser.ConfigParser()
@@ -66,6 +100,7 @@ port = config['database']['port']
 logging.info("Connecting to database")
 conn = psycopg2.connect(f'dbname={dbname} user={user} password={password} host={host} port={port}')
 read_cursor = conn.cursor()
+write_cursor = conn.cursor()
 
 logging.info("Use sqlalchemy's create engine method to connect to the database")
 engine = sqlalchemy.create_engine(
@@ -81,7 +116,7 @@ def everygram_generator(sequence, min_tokens=1, max_tokens=None):
         for j in range(min_tokens, max_tokens+1):
             if i+j < sequence_length:
                 yield sequence[i:i+j]
-                
+
 def canonical_everygrams(sequence):
     if args.tokengrams:
         sequence = sequence
@@ -93,21 +128,35 @@ def canonical_everygrams(sequence):
                                          max_tokens=args.ngram_max_tokens)
             ]
 
-
-logging.info(f"Finding {args.bible_version_name}")
-read_cursor.execute(
-    "select version_id from bible_versions where lower(version_name) = lower(%s)",
-        [args.bible_version_name]
-)
-row = read_cursor.fetchone()
-if row is None:
-    sys.exit(f"{args.bible_version_name} not found")
-
-version = row[0]
-logging.info(f"{args.bible_version_name} is version id = {version}")
-
+if args.bible_version_id is None:
+    bible_version_name = args.bible_version_name
+    logging.info(f"Finding {bible_version_name}")
+    read_cursor.execute(
+        "select version_id from bible_versions where lower(version_name) = lower(%s)",
+        [bible_version_name]
+    )
+    row = read_cursor.fetchone()
+    if row is None:
+        sys.exit(f"{bible_version_name} not found")
+    version = row[0]
+    logging.info(f"{bible_version_name} is version id = {version}")
+elif args.bible_version_name is None:
+    version = args.bible_version_id
+    logging.info(f"Finding the name of {version}")
+    read_cursor.execute(
+        "select version_name from bible_versions where version_id = %s and version_worth_fetching",
+        [version])
+    row = read_cursor.fetchone()
+    if row is None:
+        sys.exit(f"{bible_version_id} not found, or it was not a version worth fetching")
+    bible_version_name = row[0]
+else:
+    sys.exit("Must supply either a version name or a version id")
 
 logging.info("Reading lemmas")
+
+if not(args.singplur_only):
+    sys.exit("--singplur-only is required; the alternative isn't implemented yet")
 
 singplur = pandas.read_sql(
     """select * from lemmas_with_repeated_singular_and_plural join common_nouns using (lemma, gender, noun_case)
@@ -123,7 +172,7 @@ logging.info(f"Reading verses from version_id = {version}")
 this_version_verses = pandas.read_sql(
     f"""select book, chapter, verse, passage from verses where version_id = {version}""", engine)
 this_version_verses['verseref'] = this_version_verses.book + " " + this_version_verses.chapter.map(str) + ':' + this_version_verses.verse.map(str)
-logging.info(f"{args.bible_version_name} [version_id={version}] has {this_version_verses.shape[0]} verses")
+logging.info(f"{bible_version_name} [version_id={version}] has {this_version_verses.shape[0]} verses")
 
 # I can't remember what I was doing here
 logging.info("Taking each word and seeing what verses it is in")
@@ -171,7 +220,7 @@ iterator = df.index.unique()
 if args.progress:
     import tqdm
     iterator = tqdm.tqdm(iterator)
-    
+
 for row in iterator:
     temp_df = df.loc[row]
     lemma = row[0]
@@ -238,10 +287,10 @@ for row_idx in noun_vocab.index:
     translation = noun_vocab.loc[row_idx].translation
     neg_log_binomial_test_p_score  = noun_vocab.loc[row_idx].neg_log_binomial_test_p_score
     alternatives = translation_df[
-            (translation_df.lemma == lemma) & 
-            (translation_df.gender == gender) & 
-            (translation_df.noun_case == noun_case) & 
-            (translation_df.noun_number == noun_number) & 
+            (translation_df.lemma == lemma) &
+            (translation_df.gender == gender) &
+            (translation_df.noun_case == noun_case) &
+            (translation_df.noun_number == noun_number) &
             (translation_df.translation != translation)
     ]
     next_best = alternatives.neg_log_binomial_test_p_score.max()
@@ -286,3 +335,100 @@ if args.word_pairs_output is not None:
     os.makedirs(output_directory, exist_ok = True)
     word_number_pairs.to_csv(args.word_pairs_output, index=False, sep='\t')
 
+if args.dry_run:
+    logging.info("Skipping the database update. Terminating cleanly now.")
+    sys.exit(0)
+
+for row_idx in noun_vocab.index:
+    confidence = noun_vocab.loc[row_idx].confidence
+    if confidence == 1.0:
+        continue
+    lemma = noun_vocab.loc[row_idx].lemma
+    gender = noun_vocab.loc[row_idx].gender
+    noun_case = noun_vocab.loc[row_idx].noun_case
+    noun_number = noun_vocab.loc[row_idx].noun_number
+    translation = noun_vocab.loc[row_idx].translation
+    binomial_test_p_score = noun_vocab.loc[row_idx].binomial_test_p_score
+    neg_log_binomial_test_p_score  = noun_vocab.loc[row_idx].neg_log_binomial_test_p_score
+    appearances = noun_vocab.loc[row_idx].appearances
+    total_verses_in_translation = noun_vocab.loc[row_idx].total_verses_in_translation
+    probability_of_seeing_this_word = noun_vocab.loc[row_idx].probability_of_seeing_this_word
+    count_we_saw = noun_vocab.loc[row_idx].count_we_saw
+    number_of_places_we_saw_the_lemma = noun_vocab.loc[row_idx].number_of_places_we_saw_the_lemma
+    read_cursor.execute("""select translation_in_target_language,
+               neg_log_binomial_test_p_score,
+               confidence
+          from vocabulary_extractions
+         where bible_version_id = %s
+           and tokenisation_method_id = %s
+           and lemma = %s
+           and gender = %s
+           and noun_case = %s
+           and noun_number = %s""", [version, tokenisation_method_id, lemma, gender,
+                                     noun_case, noun_number])
+    dbrow = read_cursor.fetchone()
+    if dbrow is None:
+        logging.info(f"Inserting {lemma} {gender} {noun_case} {noun_number} -> {translation} confidence = {confidence}")
+        write_cursor.execute("""insert into vocabulary_extractions (
+ bible_version_id,
+ tokenisation_method_id,
+ lemma,
+ gender,
+ noun_case,
+ noun_number,
+ translation_in_target_language,
+ binomial_test_p_score,
+ neg_log_binomial_test_p_score,
+ appearances,
+ total_verses_in_translation,
+ probability_of_seeing_this_word,
+ count_we_saw,
+ number_of_places_we_saw_the_lemma,
+ confidence) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                             [version, tokenisation_method_id, lemma, gender, noun_case,
+                              noun_number, translation,
+                              float(binomial_test_p_score),
+                              float(neg_log_binomial_test_p_score),
+                              int(appearances),
+                              int(total_verses_in_translation),
+                              float(probability_of_seeing_this_word),
+                              int(count_we_saw),
+                              int(number_of_places_we_saw_the_lemma),
+                              float(confidence)])
+        continue
+    previous_translation = dbrow[0]
+    previous_neg_log = dbrow[1]
+    previous_confidence = dbrow[2]
+    if previous_translation != translation or previous_neg_log != neg_log_binomial_test_p_score or previous_confidence != confidence:
+        logging.info(f"Updating {lemma} {gender} {noun_case} {noun_number} -> {translation} instead of {previous_translation},  confidence = {confidence} instead of {previous_confidence}, neg_log_binomial_test_p_score = {neg_log_binomial_test_p_score} instead of {previous_neg_log}")
+        write_cursor.execute("""update vocabulary_extractions
+        set  translation_in_target_language = %s,
+             binomial_test_p_score =  %s,
+             neg_log_binomial_test_p_score = %s,
+             appearances = %s,
+             total_verses_in_translation = %s,
+             probability_of_seeing_this_word = %s,
+             count_we_saw = %s,
+             number_of_places_we_saw_the_lemma = %s,
+             confidence = %s,
+             is_replacement = true
+       where bible_version_id = %s
+        and tokenisation_method_id = %s
+        and lemma = %s
+        and gender = %s
+        and noun_case = %s
+        and noun_number = %s""",
+
+                             [translation,
+                              float(binomial_test_p_score),
+                              float(neg_log_binomial_test_p_score),
+                              int(appearances),
+                              int(total_verses_in_translation),
+                              float(probability_of_seeing_this_word),
+                              int(count_we_saw),
+                              int(number_of_places_we_saw_the_lemma),
+                              float(confidence),
+                              version,
+                              tokenisation_method_id, lemma, gender, noun_case, noun_number ])
+
+conn.commit()
