@@ -1,8 +1,24 @@
 #!/usr/bin/env python3
 
+# This generates a bad makefile. The problem is that we can have the same bible name in two different languages!
+# select version_name, count(distinct language) from bible_versions group by version_name having count(distinct language) > 1; 
+#
+# extract_vocab.py has been corrected, so it can cope with a
+# version_id.
+#
+# The bigger problem is that previously, we extracted a lot of things
+# out to files (which we then put back into the
+# database). extract_vocab.py can put things back into databases now.
+#
+# And lastly... leaftop only uses unigrams and uni_tokens (and uselessly, quad_tokens)
+# To make things smarter for leaftop, we should try unigrams, try uni_tokens if there
+# are less than 100 successful, and then try quad_tokens if it appears to be alphabetic.
+#
+# Only sing2plur grammar analysis works on bigrams, bi_tokens, trigrams and tri_tokens.
+
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--release-version", default="0.003",
+parser.add_argument("--release-version", default="0.004",
                     help="Version number included in the Makefile header")
 parser.add_argument("--makefile", default="Makefile",
                     help="Filename to create")
