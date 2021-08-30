@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# This program might be irrelevant now; extract_vocab.py stores things back into the
+# database. This seems a better long-term solution.
+
 import argparse
 
 parser = argparse.ArgumentParser()
