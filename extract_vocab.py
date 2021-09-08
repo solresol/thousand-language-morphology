@@ -148,7 +148,7 @@ elif args.bible_version_name is None:
         [version])
     row = read_cursor.fetchone()
     if row is None:
-        sys.exit(f"{bible_version_id} not found, or it was not a version worth fetching")
+        sys.exit(f"{version} not found, or it was not a version worth fetching")
     bible_version_name = row[0]
 else:
     sys.exit("Must supply either a version name or a version id")
