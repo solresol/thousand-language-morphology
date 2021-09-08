@@ -3,6 +3,7 @@
 # Create the LEAFTOP (language extracted automatically from thousands of passages) database
 
 import argparse
+import shutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--database-config",
@@ -17,7 +18,15 @@ parser.add_argument("--verbose",
 parser.add_argument("--output-directory",
                     help="where to put the output",
                     default="leaftop")
-
+parser.add_argument("--readme",
+                    default="README-leaftop.txt",
+                    help="README-leaftop.txt location (which is copied as README.txt into the docs/ direcotyr")
+parser.add_argument("--evaluations",
+                    help="Directory of evaluation files",
+                    default="leaftop-evaluations")
+parser.add_argument("--skip-duplicate-language-rows",
+                    action="store_true",
+                    help="When there are two translations into the same language, do we repeat the language information?")
 
 args = parser.parse_args()
 
@@ -62,7 +71,7 @@ engine = sqlalchemy.create_engine(
 logging.info("Getting language information")
 
 language_cursor.execute("""
-select language, language_name, entity, version_id, short_code, version_name
+select language, language_name, entity, version_id, grouping_code, version_name
    from bible_versions left join bible_version_language_wikidata using (version_id)
   where version_worth_fetching
 order by language_name, version_id""")
@@ -73,19 +82,19 @@ if args.progress:
     iterator = tqdm.tqdm(iterator, total=language_cursor.rowcount)
 
 os.makedirs(args.output_directory, exist_ok=True)
+os.makedirs(os.path.join(args.output_directory, 'data'), exist_ok=True)
+os.makedirs(os.path.join(args.output_directory, 'docs'), exist_ok=True)
 
 language_index_records = []
 languages_we_cannot_use = set()
 previous_language = None
 for language_row in iterator:
-    this_language, language_name, entity, version_id, short_code, version_name = language_row
+    this_language, language_name, entity, version_id, grouping_code, version_name = language_row
     logging.info(f"Processing {language_name} ({this_language})")
     if args.progress:
         iterator.set_description(language_name)
     if this_language in languages_we_cannot_use:
         continue
-    if short_code.startswith('%'):
-        short_code = urllib.parse.unquote_plus(short_code)
     if version_name.startswith('%'):
         version_name = urllib.parse.unquote_plus(version_name)
     logging.info(f"Fetching vocab_lists.{this_language}_noun_extracts")
@@ -94,19 +103,20 @@ for language_row in iterator:
         languages_we_cannot_use.update([this_language])
         continue
     # A language can use. Let's get the index sorted out.
-    if this_language == previous_language:
+    if this_language == previous_language and args.skip_duplicate_language_rows:
         language_index_records.append({
-            'Bible Version Id': version_id,
-            'bible.com short code': short_code,
+            'Leaftop Bible version Id': version_id,
+            'bible.com/versions': grouping_code,
             'Likely name of bible': version_name
         })
         continue
+    previous_language = this_language
     language_index_records.append({
         'ISO_639_3_Code': this_language,
         'Language Name': language_name,
         'Wikidata Entity': entity,
-        'Bible Version Id': version_id,
-        'bible.com short code': short_code,
+        'Leaftop Bible version Id': version_id,
+        'bible.com/versions': grouping_code,
         'Likely name of bible': version_name
     })
     word_based = True
@@ -137,10 +147,10 @@ for language_row in iterator:
 
     output_df = translations[translations.tokenisation_method_id == best_output]
     output_df.to_csv(
-        os.path.join(args.output_directory,f"{this_language}-vocab.csv"),
+        os.path.join(args.output_directory,'data', f"{this_language}-vocab.csv"),
                      index=False)
     output_df.to_excel(
-        os.path.join(args.output_directory,f"{this_language}-vocab.xlsx"),
+        os.path.join(args.output_directory,'data', f"{this_language}-vocab.xlsx"),
                      freeze_panes=(1,0),
                      index=False)
 
@@ -170,7 +180,7 @@ for language_row in iterator:
             if not said_something and country is not None:
                 sentence = f"{language_name} is a language in {country}"
                 meta_data_sentences.update([sentence])
-        with open(os.path.join(args.output_directory, f"{this_language}-metadata.txt"),'w') as meta:
+        with open(os.path.join(args.output_directory, 'data',  f"{this_language}-metadata.txt"),'w') as meta:
             meta.write(f"{language_name} appears to be {'' if alphabetic else 'non-'}alphabetic. It is {'' if word_based else 'not '} written with spaces between words. As a result, this extract was calculated using the {best_output} method.\n")
             meta.write('\n'.join(sorted(list(meta_data_sentences))))
 
@@ -180,6 +190,9 @@ for language_row in iterator:
 
 language_index = pandas.DataFrame.from_records(language_index_records)
 language_index.to_csv(
-    os.path.join(args.output_directory, '_language_index.csv'),
+    os.path.join(args.output_directory, 'docs', 'language_index.csv'),
     index=False
     )
+
+shutil.copyfile(args.readme,os.path.join(args.output_directory, 'docs', 'README.txt'))
+shutil.copytree(args.evaluations,os.path.join(args.output_directory, 'evaluations'), dirs_exist_ok=True)
