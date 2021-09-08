@@ -42,9 +42,9 @@ port=5432
 
 7. Run the `datacleaning.sql` file using `psql`
 
-8. Run `python makefile_generator.py`
+8. Run `fetch_verses.py`
 
-9. Run `make`
+9. Run `extract_vocab.py`
 
 10. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
 and run `refresh materialized view wikidata_iso639_codes`
@@ -61,3 +61,5 @@ and run `refresh materialized view wikidata_iso639_codes`
 14. Run `./make_leaftop.py`
 
 15. Hire some translators to check the content in `leaftop/`
+
+16. Load their results with `load_assessment.py`
