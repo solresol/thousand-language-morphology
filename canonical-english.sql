@@ -159,3 +159,12 @@ insert into common_noun_baker_translations (lemma, english_translation) values (
 insert into common_noun_baker_translations (lemma, english_translation) values ('ὀδούς','tooth');
 insert into common_noun_baker_translations (lemma, english_translation) values ('ῥάπισμα','slap, strike, hit');
 insert into common_noun_baker_translations (lemma, english_translation) values ('λύκος','wolf');
+
+----------------------------------------------------------------------
+
+insert into common_noun_baker_translations (lemma, english_translation) values ('αἰγιαλός','beach');
+insert into common_noun_baker_translations (lemma, english_translation) values ('αἰτία','legal reason, legal charge, accusation');
+insert into common_noun_baker_translations (lemma, english_translation) values ('αἶνος','praise');
+insert into common_noun_baker_translations (lemma, english_translation) values ('αἷμα','blood');
+insert into common_noun_baker_translations (lemma, english_translation) values ('αὐλή','courtyard, palace, sheepfold');
+insert into common_noun_baker_translations (lemma, english_translation) values ('βίβλος','book, scroll, annal');
