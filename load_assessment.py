@@ -25,7 +25,7 @@ if args.verbose:
         datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Starting")
 
-    
+
 config = configparser.ConfigParser()
 config.read(args.database_config)
 dbname = config['database']['dbname']
@@ -38,6 +38,7 @@ conn = psycopg2.connect(f'dbname={dbname} user={user} password={password} host={
 read_cursor = conn.cursor()
 write_cursor = conn.cursor()
 
+logging.info(f"Reading {args.input_file}")
 excel = pandas.read_excel(args.input_file)
 
 # I could sanity check by looking for version_NNNN_translation, and confirming that the language
@@ -45,9 +46,11 @@ excel = pandas.read_excel(args.input_file)
 
 original_columns = ['lemma', 'gender', 'noun_case', 'noun_number', 'most_common_translation']
 for colname in original_columns:
+    logging.info(f"Checking that {colname} is present")
     if colname not in excel.columns:
         sys.exit(f"Missing {colname} from columns in {args.input_file}. This suggests that the vocab file has been mangled to the point of uselessness.")
 
+logging.info("Establishing configuration of right/wrong/close")
 yes_responses = ['yes', 'correct', 'right', 'yez', 'yed', 'tes', 'yes , spirit', 'yes, spirit']
 no_responses = ['no', 'incorrect', 'wrong', 'not']
 close_responses = ['close', 'clos']
@@ -58,15 +61,18 @@ for n in no_responses:
     valid_responses[n] = 'incorrect'
 for c in close_responses:
     valid_responses[c] = 'close'
-    
 
+logging.info("Looking for the response column")
 found_the_response_column = False
 response_column = None
 for colname in excel.columns:
+    logging.info(f"Checking {colname}")
     if colname in original_columns:
+        logging.info(f"Can ignore {colname}, it's one of the original columns")
         continue
     focus = excel[excel[colname].notnull()][colname]
     if focus.dtype in ['int64', 'float64']:
+        logging.info(f"Can ignore {colname}, it is of type {focus.dtype}")
         continue
     focus = focus.str.lower().str.strip()
     if focus.isin(valid_responses).all() and 10 * focus.shape[0] > excel.shape[0]:
@@ -75,12 +81,13 @@ for colname in excel.columns:
         break
     elif focus.isin(valid_responses).mean() > 0.8:
         print(colname, focus[~focus.isin(valid_responses)].value_counts())
-        
 
 if not(found_the_response_column):
     sys.exit("Sorry, can't find the answers")
+logging.info(f"The response column is {response_column}")
 
 for row_idx in excel[excel.most_common_translation.notnull()].index:
+    logging.info(f"Reading row {row_idx}")
     lemma = excel.loc[row_idx].lemma
     gender = excel.loc[row_idx].gender
     noun_case = excel.loc[row_idx].noun_case
@@ -88,9 +95,12 @@ for row_idx in excel[excel.most_common_translation.notnull()].index:
     target_language_assessed_word = excel.loc[row_idx].most_common_translation
     if target_language_assessed_word.strip() == '':
         continue
-    assessment = valid_responses[excel.loc[row_idx][response_column].lower().strip()]
+    raw_assessment = excel.loc[row_idx][response_column]
+    cleaned_assessment = raw_assessment.lower().strip()
+    assessment = valid_responses.get(cleaned_assessment, None)
+
     if assessment is None:
-        sys.exit(f"Shouldn't be possible to have an empty assessment (happened at row {row_idx}")
+        sys.exit(f"Shouldn't be possible to have an empty assessment (happened at row {row_idx} => {raw_assessment})")
     write_cursor.execute("""
 insert into human_scoring_of_vocab_lists (language, lemma, gender, noun_case, noun_number,
  target_language_assessed_word, assessment) values (%s,%s,%s,%s,%s,%s,%s)
