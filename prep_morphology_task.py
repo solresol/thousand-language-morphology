@@ -58,4 +58,14 @@ read_cursor.execute(sql, langs)
 languages = [x[0] for x in read_cursor]
 
 for language in languages:
-    f"""select lemma 
+    sql = f"""select 
+               sing.most_common_translation as singular,
+               plur.most_common_translation as plural
+          from vocab_lists.{language}_noun_extracts as sing 
+          join vocab_lists.{language}_noun_extracts as plur 
+         using (lemma, gender,noun_case)
+         where sing.noun_number = 'singular'
+           and plur.noun_number = 'plural'"""
+    read_cursor.execute(sql)
+    for row in read_cursor:
+        print(row[0], row[1])
