@@ -274,7 +274,8 @@ create table vocabulary_extractions (
   confidence float,
   is_correct boolean,
   extraction_timestamp timestamp default current_timestamp,
-  is_replacement boolean default false -- recording whether extract_vocab replaced a pre-existing value
+  is_replacement boolean default false, -- recording whether extract_vocab replaced a pre-existing value
+  log_confidence float generated always as (log10 (confidence)) stored
 );
 alter table vocabulary_extractions add primary key (bible_version_id, tokenisation_method_id, lemma, gender, noun_case, noun_number);
 create index on vocabulary_extractions(lemma, gender, noun_case, noun_number, tokenisation_method_id);
@@ -409,6 +410,10 @@ create materialized view lemma_translation_counts as
    from vocabulary_extractions
   group by lemma, gender, noun_case, noun_number, tokenisation_method_id;
 
+
+
+
+
 create table machine_learning_methods (
     ml_method varchar primary key
 );
@@ -429,6 +434,7 @@ create table machine_learning_morphology_scoring (
     answers_wrong int not null check (answers_wrong >= 0),
     total_vocab_size_checked int not null check (total_vocab_size_checked >= 0) ,
     when_added date default current_date,
+    proportion_correct float generated always as ((1.0*answers_correct)/(nullif(answers_correct+answers_wrong,0))) stored,
     CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or algorithm_region_size_parameter is not null),
     CONSTRAINT all_vocab_accounted_for check (answers_correct + answers_wrong = total_vocab_size_checked)
 );
@@ -458,7 +464,7 @@ create table language_orthography (
   iso_639_3_code varchar primary key, -- should be foreign key actually
   word_based boolean not null,
   alphabetic boolean not null,
-  best_tokenisation_method not null varchar references tokenisation_methods(tokenisation_method_id)
+  best_tokenisation_method varchar not null references tokenisation_methods(tokenisation_method_id)
 );
 
 
@@ -480,4 +486,72 @@ create table human_scoring_of_vocab_lists (
  assessment varchar references human_scoring_assessment_options (assessment)
 );
 
-alter table human_scoring_of_vocab_lists add primary key (language, lemma, gender, noun_case, noun_number);
+alter table human_scoring_of_vocab_lists add primary key (language, lemma, gender, noun_case, noun_number;
+
+create view human_scoring_of_vocab_lists_summary as select language, language_name, avg(case when assessment = 'incorrect' then 0 else 1 end) as proportion_correct from human_scoring_of_vocab_lists left join wikidata_iso639_codes on (language = iso_639_3_code) group by language, language_name order by language;
+);
+
+create table vocabulary_pairing_tests (
+ vocabulary_pairing_test_id serial primary key,
+ tokenisation_method_id varchar not null references tokenisation_methods(tokenisation_method_id),
+ bible_version_id1 int not null references bible_versions(version_id),
+ bible_version_id2 int not null references bible_versions(version_id),
+ mann_whitney_statistic float,
+ mann_whitney_pvalue float,
+ confidence_correlation float,
+ log_confidence_correlation float,
+ confidence_spearman_correlation float,
+ calculation_timestamp timestamp default current_timestamp
+);
+create unique index on vocabulary_pairing_tests (
+ tokenisation_method_id, bible_version_id1, bible_version_id2
+);
+create index on vocabulary_pairing_tests (bible_version_id1);
+create index on vocabulary_pairing_tests (bible_version_id2);
+
+create view language_pairing_links as
+  select v1.language as language1,
+         v2.language as language2,
+	 tokenisation_method_id,
+	 max(confidence_correlation) as confidence_correlation,
+ 	 max(log_confidence_correlation) as log_confidence_correlation,
+	 max(confidence_spearman_correlation) as confidence_spearman_correlation
+    from vocabulary_pairing_tests join bible_versions as v1
+            on (v1.version_id = bible_version_id1)
+	    join bible_versions as v2 on (v2.version_id = bible_version_id2)
+  group by tokenisation_method_id, v1.language, v2.language;
+         
+
+
+
+
+create view vocabulary_extraction_ranks as
+ select bible_version_id,
+        lemma,
+	gender,
+	noun_case,
+	noun_number,
+	tokenisation_method_id,
+	confidence,
+	log_confidence,
+	rank() over (partition by bible_version_id, tokenisation_method_id order by confidence) as confidence_rank
+   from vocabulary_extractions;
+
+
+
+
+-- -- Note that this next line creates a materialized view that can only be refreshed on a very large system
+-- create materialized view vocabulary_extraction_correlations_materialized_views as
+--   select v1.bible_version_id as bible_version_id1,
+--          v2.bible_version_id as bible_version_id2,
+-- 	 tokenisation_method_id,
+-- 	 corr(v1.log_confidence, v2.log_confidence) as log_confidence_correlation,
+-- 	 corr(v1.confidence, v2.confidence) as confidence_correlation,
+-- 	 corr(v1.confidence_rank, v2.confidence_rank) as confidence_spearman_correlation
+--     from vocabulary_extraction_ranks as v1 join vocabulary_extraction_ranks as v2
+--          using (lemma, gender, noun_case, noun_number, tokenisation_method_id)
+-- group by bible_version_id1, bible_version_id2, tokenisation_method_id;
+
+-- create table vocabulary_extraction_correlations as
+--  select * from vocabulary_extraction_correlations_materialized_views;
+
