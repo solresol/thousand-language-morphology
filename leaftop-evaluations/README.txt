@@ -23,11 +23,11 @@ xog.xlsx - Auma Sharot
 teo.xlsx - Okotoi Ruby
 lug.xlsx - Okullo Joel
 swh.xlsx - Bwambale Hamza
-fon.xlsx - Anonymity/name request unconfirmed or task incomplete
-fra.xlsx - Anonymity/name request unconfirmed or task incomplete
-ibo.xlsx - Anonymity/name request unconfirmed or task incomplete
-gkp.xlsx - Anonymity/name request unconfirmed or task incomplete
-mev.xlsx - Anonymity/name request unconfirmed or task incomplete
-yor.xlsx - Anonymity/name request unconfirmed or task incomplete
-
-
+fon.xlsx - Frencelin Laurice
+fra.xlsx - Sidime Amadou
+ibo.xlsx - Chimankpa Stanley
+gkp.xlsx - Moussa Keita
+mev.xlsx - Paul Malanou
+yor.xlsx - Uhtman Alake
+deu.xlsx - Greg Baker
+epo.xlsx - Greg Baker
