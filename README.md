@@ -63,3 +63,12 @@ and run `refresh materialized view wikidata_iso639_codes`
 15. Hire some translators to check the content in `leaftop/`
 
 16. Load their results with `load_assessment.py`
+
+17. Run `./make_leaftop.py` again, but send the `--output` to the directory
+which has the clone of `github.com:solresol/leaftop.gif`
+
+18. Run `./make_explorer.py` (again, use `--output` to put the output
+into a suitable subdirectory (e.g. `leaftop-explorer`) of the
+leaftop repo.
+
+19. Make a release of LEAFTOP. zip the data, docs, evaluations and leaftop-explorer files from the leaftop repo.
