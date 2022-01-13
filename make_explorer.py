@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy
 import os
 import math
@@ -7,17 +7,14 @@ import json
 import pandas
 import scipy
 import scipy.spatial
-import tqdm
 import networkx
 import random
 import sklearn.linear_model
 import psycopg2
 import configparser
 import sqlalchemy
-import umap
-import seaborn
-
 import argparse
+import jinja2
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--database-config",
@@ -45,10 +42,29 @@ stats_cursor = conn.cursor()
 engine = sqlalchemy.create_engine(
     f"postgresql+psycopg2://{user}:{password}@{host}:5432/{dbname}")
 
+if args.progress:
+    import tqdm
+
 language_names = pandas.read_sql("select * from wikidata_iso639_codes", engine)
 language_name_lookup = language_names.set_index('iso_639_3_code').language_name.to_dict()
-language_orthography = pandas.read_sql("select * from language_orthography", engine)
-orthography_lookup = language_orthography.set_index('iso_639_3_code').best_tokenisation_method.to_dict()
+language_orthography = pandas.read_sql("select * from language_structure_identification_results", engine)
+
+orthography_lookup = language_orthography.set_index('language').tokenisation_method_id.to_dict()
+
+# I should turn this into a parameter
+#CORR_TO_USE = 'log_confidence_correlation'
+CORR_TO_USE = 'confidence_spearman_correlation'
+
+distances = pandas.read_sql(f"""
+  select language1, language2, {CORR_TO_USE}, tokenisation_method_id
+    from language_pairing_links join language_orthography as l1 on (language1 = l1.iso_639_3_code)
+                                join language_orthography as l2 on (language2 = l2.iso_639_3_code)
+   where l1.best_tokenisation_method = l2.best_tokenisation_method
+     and l1.best_tokenisation_method = language_pairing_links.tokenisation_method_id
+     and l2.best_tokenisation_method = language_pairing_links.tokenisation_method_id
+  """, engine)
+
+look_up_corr_score = distances.set_index(['language1', 'language2'])[CORR_TO_USE].to_dict()
 
 def neighbours(language1, recursion=1, nearby_count=5, except_for=[]):
     #extra_constraint = (~distances.language2.isin(except_for))
@@ -66,7 +82,6 @@ def neighbours(language1, recursion=1, nearby_count=5, except_for=[]):
         answer += neighbours(n, recursion-1, nearby_count//2 if nearby_count > 3 else 2, except_for=known_so_far)
     return answer
 
-import jinja2
 html_page = jinja2.Template("""<!DOCTYPE html>
 <html>
   <head>
