@@ -109,7 +109,7 @@ engine = sqlalchemy.create_engine(
 
 def everygram_generator(sequence, min_tokens=1, max_tokens=None):
     sequence = list(sequence)
-    sequence_length = len(sequence)
+    sequence_length = len(sequence)+1
     if max_tokens is None:
         max_tokens = len(sequence)
     for i in range(len(sequence)):
