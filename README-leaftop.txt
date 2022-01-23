@@ -45,8 +45,13 @@ fetch_verses.py in the git repository listed above.
 
 ----------------------------------------------------------------------
 
-There are 416 nouns in the gospels that appear twice or more in the
-same case, number and gender.
+There are 188 nouns in the gospels that appear:
+
+- Twice or more in the singular (in the same case and gender)
+
+- Twice or more in the plural (in the same case and gender as for the
+  singular)
+
 
 The assumption is made that each of these nouns is translated
 consistently into a single word, single token or character
@@ -61,10 +66,10 @@ identified as being the most probably translation, then the Greek
 lemma is ignored for that language; if one word (or token) is the most
 probable, it is recorded in this dataset.
 
-Since there is some ambiguity, this process produces around 300 nouns,
+Since there is some ambiguity, this process produces around 160 nouns,
 together with a confidence score.
 
-If the process produces less than 100 candidate translations of
+If the process produces less than 150 candidate translations of
 unigrams, it is assumed that the language doesn't use spaces to
 separate words. If the number of distinct uni_tokens is less than half
 of the number of lemmas translated, it is assumed to be a
@@ -76,11 +81,11 @@ For languages that have multiple translations of the bible, a "most
 common translation choice" (the consensus answer of the extract process
 on each bible version) is included as well.
 
-This dataset contains the output of doing this process across 1505
-languages. Some metadata about each language (to disambiguate
-languages from different regions with the same) is also included,
-mostly derived from wikidata. Cross references to which translation of
-the bible it is derived from is included as well.
+This dataset contains the output of doing this process across 1480
+languages plus 22 language variants. Some metadata about each language
+(to disambiguate languages from different regions with the same) is
+also included, mostly derived from wikidata. Cross references to which
+translation of the bible it is derived from is included as well.
 
 This is useful to researchers looking at grammar morphology across a
 large number of languages and to researchers looking for comparative
@@ -104,10 +109,11 @@ There are various limitations to be aware of:
   incorrectly.
 
 - There will be mistakes in general. A low confidence score (a score
-  of 2.0 or lower) has a very high chance of being an incorrect
-  translation. The author has begun the process of evaluating how accurate
-  this data is in general across a variety of languages. These are to
-  be found in the evaluations folder.
+  of 2.0 or lower) has a higher chance of being an incorrect
+  translation, but there are problems even with vocabulary
+  that has quite a high confidence score.
+
+- Evaluations done by human translators are in the evaluations folder.
 
 - The author believes that the use and distributions of these
   translations is legitimate fair dealing and fair use; but the
@@ -227,3 +233,6 @@ These are in the evaluations subdirectory. Formatting is not consistent,
 but generally these match up to the equivalent *-vocab.xlsx file, but with
 a column added by the translator to report whether the translation was
 correct or not.
+
+Also available... software that does something useful with this data:
+http://github.com/solresol/padiclinear

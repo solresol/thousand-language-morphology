@@ -42,9 +42,9 @@ port=5432
 
 7. Run the `datacleaning.sql` file using `psql`
 
-8. Run `fetch_verses.py`
+8. Run `fetch_verses.py` -- this takes a few weeks to complete
 
-9. Run `extract_vocab.py`
+9. Run `extract_vocab.py` -- this takes a few weeks to complete
 
 10. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
 and run `refresh materialized view wikidata_iso639_codes`
@@ -54,7 +54,8 @@ and run `refresh materialized view wikidata_iso639_codes`
 12. Load the translation data into the database with `save_translations.py` and then run
 `refresh materialized view vocabulary_sizes`
 `refresh materialized view vocabulary_sizes_crosstab` and
-`refresh materialized view lemma_translation_counts`
+`refresh materialized view lemma_translation_counts` and 
+`refresh materialized view vocabulary_extraction_correlations`
 
 13. Run `./make_vocab_lists.py`
 
@@ -71,4 +72,8 @@ which has the clone of `github.com:solresol/leaftop.gif`
 into a suitable subdirectory (e.g. `leaftop-explorer`) of the
 leaftop repo.
 
-19. Make a release of LEAFTOP. zip the data, docs, evaluations and leaftop-explorer files from the leaftop repo.
+19. Run `pairings.py` (maybe run it several times with `pairings --tokenisation-method bigram/trigram/uni_token`  etc.) It took about 48 hours to run.
+
+20. `refresh materialized view translation_exploration`
+
+21. Make a release of LEAFTOP. zip the data, docs, evaluations and leaftop-explorer files from the leaftop repo.
