@@ -121,7 +121,7 @@ for language_row in iterator:
     })
     word_based = True
     alphabetic = True
-    if translations[translations.tokenisation_method_id == 'unigram'].shape[0] < 100:
+    if translations[translations.tokenisation_method_id == 'unigram'].shape[0] < 120:
         word_based = False
     distinct_tokens_seen = translations[translations.tokenisation_method_id == 'uni_token'].most_common_translation.nunique()
     translated_lemmas = translations[translations.tokenisation_method_id == 'uni_token'].shape[0]
