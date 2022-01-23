@@ -51,8 +51,8 @@ for colname in original_columns:
         sys.exit(f"Missing {colname} from columns in {args.input_file}. This suggests that the vocab file has been mangled to the point of uselessness.")
 
 logging.info("Establishing configuration of right/wrong/close")
-yes_responses = ['yes', 'correct', 'right', 'yez', 'yed', 'tes', 'yes , spirit', 'yes, spirit']
-no_responses = ['no', 'incorrect', 'wrong', 'not']
+yes_responses = ['yes', 'correct', 'right', 'yez', 'yed', 'tes', 'yes , spirit', 'yes, spirit', 'y']
+no_responses = ['no', 'incorrect', 'wrong', 'not', 'n']
 close_responses = ['close', 'clos']
 valid_responses = {'': None}
 for y in yes_responses:
