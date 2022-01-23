@@ -221,8 +221,6 @@ Have fun!
 
 
 
-language_list = pandas.DataFrame({'iso_code': s})
-
 with open(os.path.join(args.output, "dynamic_files/index.html"), "w") as f:
     f.write(index_template.render({"languages": [ {'link': s + ".html", "official_name": language_name_lookup.get(s,s)} for 
                                 s in distances.language1.unique()]
