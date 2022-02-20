@@ -1062,6 +1062,101 @@ insert into swadesh (swadesh_number, swadesh_term) values (  207, 'name');
 
 ----------------------------------------------------------------------
 
+
+
+create index on vocabulary_extractions(bible_version_id, tokenisation_method_id, lemma, gender, noun_case);
+
+
+
+create materialized view singular_plural_similarity_and_signals as
+ select
+   bible_version_id,
+   singular.tokenisation_method_id,
+   singular.lemma,  -- which = plural.lemma, but maybe not singular_scoring.lemma
+   singular.gender, -- ditto
+   singular.noun_case, -- ditto
+   singular.translation_in_target_language as singular_translation,
+   plural.translation_in_target_language as plural_translation,
+   singular.binomial_test_p_score as singular_test_p_score,
+   plural.binomial_test_p_score as plural_test_p_score,
+   singular.confidence as singular_confidence,
+   plural.confidence as plural_confidence,
+   similarity(singular.translation_in_target_language ,
+   plural.translation_in_target_language) as trigram_overlap,
+   singular_scoring.assessment as singular_assessment,
+   plural_scoring.assessment as plural_assessment   
+from vocabulary_extractions as singular
+ join vocabulary_extractions as plural using (
+   bible_version_id,
+   tokenisation_method_id,
+   lemma,
+   gender,
+   noun_case)
+   join bible_version_language_wikidata on (bible_version_id = version_id)
+   join language_structure_identification_results on
+      (bible_version_language_wikidata.iso_639_3_code = language_structure_identification_results.language)
+   left join human_scoring_of_vocab_lists as singular_scoring on (
+     singular_scoring.language = bible_version_language_wikidata.iso_639_3_code
+     and singular_scoring.lemma = singular.lemma
+     and singular_scoring.gender = singular.gender
+     and singular_scoring.noun_case = singular.noun_case
+     and singular_scoring.noun_number = singular.noun_number
+     and language_structure_identification_results.tokenisation_method_id = singular.tokenisation_method_id
+   )
+   left join human_scoring_of_vocab_lists as plural_scoring on (
+     plural_scoring.language = bible_version_language_wikidata.iso_639_3_code
+     and plural_scoring.lemma = plural.lemma
+     and plural_scoring.gender = plural.gender
+     and plural_scoring.noun_case = plural.noun_case
+     and plural_scoring.noun_number = plural.noun_number
+     and language_structure_identification_results.tokenisation_method_id = plural.tokenisation_method_id     
+   )
+   where singular.noun_number = 'singular'
+   and plural.noun_number = 'plural';
+   
+
+
+
+create view singplur_of_assessed as select
+ language,
+ lemma
+ gender,
+ noun_case,
+ sing.target_language_assessed_word as singular,
+ plur.target_language_assessed_word as plural,
+ sing.assessment as singular_assessment,
+ plur.assessment as plural_assessment,
+ similarity(singular, plural) as similarity_of_singular_and_plural,
+ sing_confidence.confidence as singular_confidence,
+ plur_confidence.confidence as plural_confidence
+from human_scoring_of_vocab_lists as sing
+join  human_scoring_of_vocab_lists as plur using (language, lemma, gender, noun_case)
+join vocabulary_extractions as sing_confidence using (language, lemma, gender, noun_case)
+join vocabulary_extractions as plur_confidence using (language, lemma, gender, noun_case)
+ where sing.noun_number = 'singular'
+  and plur.noun_number = 'plural'
+  and sing_confidence.noun_number = 'singular'
+  and plur_confidence.noun_number = 'plural'
+  
+
+----------------------------------------------------------------------
+
+create table similarity_and_confidence_threshold (
+   trigram_overlap_multipler float,
+   singular_confidence_multiplier float,
+   plural_confidence_multiplier float,
+   base_offset float   
+);
+
+-- The next bit is in notebooks/similarity-and-confidence-threshold.ipynb
+insert into similarity_and_confidence_threshold (
+   trigram_overlap_multipler,
+   singular_confidence_multiplier,
+   plural_confidence_multiplier,
+   base_offset
+ ) values (2.10248003, 0.18612778, 0.53461935, -1.11710496);
+
+
 -- Re-doing the machine language morphology results to match what I described
 -- in my thesis
 
@@ -1113,3 +1208,4 @@ create materialized view machine_learning_morphology_summary as
     and hybrid_siegel.calculation_algorithm = 'HybridSiegel'
     and local_euclidean_siegel.calculation_algorithm = 'LocalEuclideanSiegel'
     and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'   ;
+ -- also compare against Y_Equals_X algorithm
