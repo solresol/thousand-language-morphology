@@ -251,6 +251,13 @@ create table wikidata_content (
   wikidata_content jsonb
 );
 
+create view wikidata_containment as
+  select jsonb_array_elements(wikidata_content->'entities'->entity->'claims'->'P279')->'mainsnak'->'datavalue'->'value'->>'id' as entity from wikidata_content;
+
+create view wikidata_labels as
+  select entity, wikidata_content->'entities'->entity->'labels'->'en'->>'value' as entity_label from wikidata_content;
+
+
 create table tokenisation_methods (
   tokenisation_method_id varchar primary key
 );
@@ -1058,6 +1065,8 @@ insert into swadesh (swadesh_number, swadesh_term) values (  207, 'name');
 -- Re-doing the machine language morphology results to match what I described
 -- in my thesis
 
+-- I need to create a materialized view for "latest score" first
+
 create materialized view machine_learning_morphology_best_scores as
 select language, calculation_algorithm, algorithm_region_size_parameter,
   max(total_vocab_size_checked) as largest_vocab_size_checked,
@@ -1086,8 +1095,8 @@ create materialized view machine_learning_morphology_best_parameters_and_scores 
 
 create materialized view machine_learning_morphology_summary as
  select language, global_padic_linear.largest_vocab_size_checked,
-        global_padic_linear.best_score as global_padic_linear_best_score,
-        global_siegel.best_score as global_siegel_best_score,
+	global_padic_linear.best_score as global_padic_linear_best_score,
+	global_siegel.best_score as global_siegel_best_score,
 	hybrid_siegel.algorithm_region_size_parameter as hybrid_siegel_best_region_size,
 	hybrid_siegel.best_score as hybrid_siegel_best_score,
 	local_euclidean_siegel.algorithm_region_size_parameter as local_euclidean_siegel_best_region_size,
@@ -1103,4 +1112,4 @@ create materialized view machine_learning_morphology_summary as
     and global_siegel.calculation_algorithm = 'GlobalSiegel'
     and hybrid_siegel.calculation_algorithm = 'HybridSiegel'
     and local_euclidean_siegel.calculation_algorithm = 'LocalEuclideanSiegel'
-    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'   ;     
+    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'   ;
