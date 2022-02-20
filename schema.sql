@@ -245,6 +245,12 @@ create table wikidata_geo (
   location_name varchar
 );
 
+
+create table wikidata_content (
+  entity varchar primary key,
+  wikidata_content jsonb
+);
+
 create table tokenisation_methods (
   tokenisation_method_id varchar primary key
 );
@@ -433,18 +439,21 @@ insert into machine_learning_methods values ('GlobalSiegel');
 insert into machine_learning_methods values ('LocalPadicLinear');
 insert into machine_learning_methods values ('LocalEuclideanSiegel');
 insert into machine_learning_methods values ('HybridSiegel');
+insert into machine_learning_methods values ('Y_Equals_X');
 
 create table machine_learning_morphology_scoring (
     mlm_score_id serial primary key,
-    bible_version_id int            references bible_versions (version_id),
-    tokenisation_method_id varchar  references tokenisation_methods(tokenisation_method_id),
-    calculation_algorithm varchar   references machine_learning_methods(ml_method),
+    bible_version_id int        not null references bible_versions (version_id),
+    tokenisation_method_id varchar not null  references tokenisation_methods(tokenisation_method_id),
+    calculation_algorithm varchar not null  references machine_learning_methods(ml_method),
     algorithm_region_size_parameter int,
-    result_version varchar,
+    result_version varchar not null,
     answers_correct int not null check (answers_correct >= 0),
     answers_wrong int not null check (answers_wrong >= 0),
     total_vocab_size_checked int not null check (total_vocab_size_checked >= 0) ,
     when_added date default current_date,
+    computation_time float,
+    computation_hostname varchar,
     proportion_correct float generated always as ((1.0*answers_correct)/(nullif(answers_correct+answers_wrong,0))) stored,
     CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or algorithm_region_size_parameter is not null),
     CONSTRAINT all_vocab_accounted_for check (answers_correct + answers_wrong = total_vocab_size_checked)
@@ -1042,3 +1051,56 @@ insert into swadesh (swadesh_number, swadesh_term) values (  204, 'and');
 insert into swadesh (swadesh_number, swadesh_term) values (  205, 'if');
 insert into swadesh (swadesh_number, swadesh_term) values (  206, 'because');
 insert into swadesh (swadesh_number, swadesh_term) values (  207, 'name');
+
+
+----------------------------------------------------------------------
+
+-- Re-doing the machine language morphology results to match what I described
+-- in my thesis
+
+create materialized view machine_learning_morphology_best_scores as
+select language, calculation_algorithm, algorithm_region_size_parameter,
+  max(total_vocab_size_checked) as largest_vocab_size_checked,
+  max(proportion_correct) as best_score
+ from machine_learning_morphology_scoring
+ join bible_versions on (version_id = bible_version_id)
+ join language_structure_identification_results using (language)
+where machine_learning_morphology_scoring.tokenisation_method_id = 'unigram'
+  and language_structure_identification_results.tokenisation_method_id = 'unigram'
+  group by 1,2,3;
+
+-- Hmm... getting different values for "largest_vocab_size_checked" is very odd.
+-- xon
+
+create materialized view machine_learning_morphology_best_score_rankings as
+ select language, calculation_algorithm, algorithm_region_size_parameter,
+		largest_vocab_size_checked, best_score,
+		rank() over (partition by language, calculation_algorithm
+			     order by best_score desc, algorithm_region_size_parameter) as ranking
+ from machine_learning_morphology_best_scores;
+
+create materialized view machine_learning_morphology_best_parameters_and_scores as
+  select language, calculation_algorithm, algorithm_region_size_parameter, largest_vocab_size_checked, best_score
+  from machine_learning_morphology_best_score_rankings
+  where ranking = 1;
+
+create materialized view machine_learning_morphology_summary as
+ select language, global_padic_linear.largest_vocab_size_checked,
+        global_padic_linear.best_score as global_padic_linear_best_score,
+        global_siegel.best_score as global_siegel_best_score,
+	hybrid_siegel.algorithm_region_size_parameter as hybrid_siegel_best_region_size,
+	hybrid_siegel.best_score as hybrid_siegel_best_score,
+	local_euclidean_siegel.algorithm_region_size_parameter as local_euclidean_siegel_best_region_size,
+	local_euclidean_siegel.best_score as local_euclidean_siegel_best_score,
+	local_padic_linear.algorithm_region_size_parameter as local_padic_linear_best_region_size,
+	local_padic_linear.best_score as local_padic_linear_best_score
+  from machine_learning_morphology_best_parameters_and_scores as global_padic_linear
+  join machine_learning_morphology_best_parameters_and_scores as global_siegel using (language)
+  join machine_learning_morphology_best_parameters_and_scores as hybrid_siegel using (language)
+  join machine_learning_morphology_best_parameters_and_scores as local_euclidean_siegel using (language)
+  join machine_learning_morphology_best_parameters_and_scores as local_padic_linear using (language)
+  where global_padic_linear.calculation_algorithm = 'GlobalPadicLinear'
+    and global_siegel.calculation_algorithm = 'GlobalSiegel'
+    and hybrid_siegel.calculation_algorithm = 'HybridSiegel'
+    and local_euclidean_siegel.calculation_algorithm = 'LocalEuclideanSiegel'
+    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'   ;     
