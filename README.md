@@ -49,31 +49,40 @@ port=5432
 10. Load wikidata codes (`\copy f'wikidata_iso639_codes' from 'enrichment/language-codes.csv')
 and run `refresh materialized view wikidata_iso639_codes`
 
-11. Load `canonical-english.sql`
+11. Run `wikidata/cache-wikidata.py`
 
-12. Load the translation data into the database with `save_translations.py` and then run
+12. Run `refresh materialized view wikidata_parental_tree;`
+
+13. Load `canonical-english.sql`
+
+14. Load the translation data into the database with `save_translations.py` and then run
 `refresh materialized view vocabulary_sizes`
 `refresh materialized view vocabulary_sizes_crosstab` and
 `refresh materialized view lemma_translation_counts` and 
 `refresh materialized view vocabulary_extraction_correlations`
 
-13. Run `./make_vocab_lists.py`
+15. Run `./make_vocab_lists.py`
 
-14. Run `./make_leaftop.py`
+16. Run `./make_leaftop.py`
 
-15. Hire some translators to check the content in `leaftop/`
+17. Hire some translators to check the content in `leaftop/`
 
-16. Load their results with `load_assessment.py`
+18. Load their results with `load_assessment.py`
 
-17. Run `./make_leaftop.py` again, but send the `--output` to the directory
+19. Run `./make_leaftop.py` again, but send the `--output` to the directory
 which has the clone of `github.com:solresol/leaftop.gif`
 
-18. Run `./make_explorer.py` (again, use `--output` to put the output
+20. Run `./make_explorer.py` (again, use `--output` to put the output
 into a suitable subdirectory (e.g. `leaftop-explorer`) of the
 leaftop repo.
 
-19. Run `pairings.py` (maybe run it several times with `pairings --tokenisation-method bigram/trigram/uni_token`  etc.) It took about 48 hours to run.
+21. Run `pairings.py` (maybe run it several times with `pairings --tokenisation-method bigram/trigram/uni_token`  etc.) It took about 48 hours to run.
 
-20. `refresh materialized view translation_exploration`
+22. `refresh materialized view translation_exploration`
+`refresh materialized view likely_valid_vocabulary_extractions`
+`refresh materialized view summary_of_vocabulary_extractions`
+`refresh materialized view confidence_vs_reality`
 
-21. Make a release of LEAFTOP. zip the data, docs, evaluations and leaftop-explorer files from the leaftop repo.
+23. Make a release of LEAFTOP. zip the data, docs, evaluations and leaftop-explorer files from the leaftop repo.
+
+24. `refresh materialized view singular_plural_similarity_and_signals`
