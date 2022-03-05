@@ -251,11 +251,57 @@ create table wikidata_content (
   wikidata_content jsonb
 );
 
+create index on wikidata_content((wikidata_content->'entities'->entity->'labels'->'en'->>'value'));
+
+
 create view wikidata_containment as
   select jsonb_array_elements(wikidata_content->'entities'->entity->'claims'->'P279')->'mainsnak'->'datavalue'->'value'->>'id' as entity from wikidata_content;
 
 create view wikidata_labels as
   select entity, wikidata_content->'entities'->entity->'labels'->'en'->>'value' as entity_label from wikidata_content;
+
+create view wikidata_279_parent as
+  select entity, jsonb_array_elements(wikidata_content->'entities'->entity->'claims'->'P279')->'mainsnak'->'datavalue'->'value'->>'id' as parent
+  from wikidata_content;
+
+create materialized view wikidata_parental_tree as
+ with recursive parenting as (
+  select entity, parent from wikidata_279_parent
+  union
+  select parenting.entity, wikidata_279_parent.parent from parenting join wikidata_279_parent on (parenting.parent = wikidata_279_parent.entity))
+  select entity, parent from parenting;
+create unique index on wikidata_parental_tree(entity,parent);
+create index on wikidata_parental_tree(entity);
+create index on wikidata_parental_tree(parent);
+
+
+create view language_family as
+ select entity,
+        language_name,
+	iso_639_3_code,
+        -- ethnologue families
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33838') as niger_congo ,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q49228') as austronesian,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q34018') as trans_new_guinea,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q45961') as sino_tibetan,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q19860') as indo_european,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q205143') as australian_aboriginal,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q25268') as afro_asiatic,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33705') as nilo_saharan,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33669') as oto_manguean,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33199') as austroasiatic,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q34171') as kra_dai,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33311') as dravidian,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q34070') as tupian,
+	-- glottolog families that aren't also ethnologue families
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q771124') as atlantic_congo,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33942') as pama_nyungan,
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q626753') as arawakan,			
+	exists (select 1 from wikidata_parental_tree where wikidata_parental_tree.entity=wikidata_iso639_codes.entity and wikidata_parental_tree.parent = 'Q33681') as mande
+   from wikidata_iso639_codes;
+
+
+----------------------------------------------------------------------
 
 
 create table tokenisation_methods (
@@ -462,7 +508,7 @@ create table machine_learning_morphology_scoring (
     computation_time float,
     computation_hostname varchar,
     proportion_correct float generated always as ((1.0*answers_correct)/(nullif(answers_correct+answers_wrong,0))) stored,
-    CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or algorithm_region_size_parameter is not null),
+    CONSTRAINT algorithm_region_compat check (calculation_algorithm ilike 'Global%' or calculation_algorithm = 'Y_Equals_X' or algorithm_region_size_parameter is not null),
     CONSTRAINT all_vocab_accounted_for check (answers_correct + answers_wrong = total_vocab_size_checked)
 );
 create index on machine_learning_morphology_scoring (bible_version_id, tokenisation_method_id,
@@ -476,16 +522,6 @@ create unique index on machine_learning_morphology_scoring (
 create unique index on machine_learning_morphology_scoring (
        bible_version_id, tokenisation_method_id,
        calculation_algorithm, result_version) where calculation_algorithm like 'Global%';
-
-
-
-create view broad_results_across_all_languages as
- select calculation_algorithm,
-	avg(100.0 * answers_correct / nullif(total_vocab_size_checked, 0)) as percentage_correct_across_all_languages
-   from machine_learning_morphology_scoring
-   join bible_versions on (bible_version_id = version_id)
-  group by calculation_algorithm;
-
 
 
 create schema vocab_lists;
@@ -682,6 +718,8 @@ create materialized view summary_of_vocabulary_extractions as
 
 ----------------------------------------------------------------------
 
+-- This next table is basically obsolete; use language_family instead. It was here because
+-- I wanted a quick answer for a graph in the LREC2022 conference paper.
 create table language_families (
   language_code varchar primary key, -- I should make this reference some other table
   language_family varchar
@@ -1068,6 +1106,8 @@ create index on vocabulary_extractions(bible_version_id, tokenisation_method_id,
 
 
 
+
+
 create materialized view singular_plural_similarity_and_signals as
  select
    bible_version_id,
@@ -1084,7 +1124,7 @@ create materialized view singular_plural_similarity_and_signals as
    similarity(singular.translation_in_target_language ,
    plural.translation_in_target_language) as trigram_overlap,
    singular_scoring.assessment as singular_assessment,
-   plural_scoring.assessment as plural_assessment   
+   plural_scoring.assessment as plural_assessment
 from vocabulary_extractions as singular
  join vocabulary_extractions as plural using (
    bible_version_id,
@@ -1109,11 +1149,11 @@ from vocabulary_extractions as singular
      and plural_scoring.gender = plural.gender
      and plural_scoring.noun_case = plural.noun_case
      and plural_scoring.noun_number = plural.noun_number
-     and language_structure_identification_results.tokenisation_method_id = plural.tokenisation_method_id     
+     and language_structure_identification_results.tokenisation_method_id = plural.tokenisation_method_id
    )
    where singular.noun_number = 'singular'
    and plural.noun_number = 'plural';
-   
+
 
 
 
@@ -1137,7 +1177,7 @@ join vocabulary_extractions as plur_confidence using (language, lemma, gender, n
   and plur.noun_number = 'plural'
   and sing_confidence.noun_number = 'singular'
   and plur_confidence.noun_number = 'plural'
-  
+
 
 ----------------------------------------------------------------------
 
@@ -1145,7 +1185,7 @@ create table similarity_and_confidence_threshold (
    trigram_overlap_multipler float,
    singular_confidence_multiplier float,
    plural_confidence_multiplier float,
-   base_offset float   
+   base_offset float
 );
 
 -- The next bit is in notebooks/similarity-and-confidence-threshold.ipynb
@@ -1160,52 +1200,191 @@ insert into similarity_and_confidence_threshold (
 -- Re-doing the machine language morphology results to match what I described
 -- in my thesis
 
--- I need to create a materialized view for "latest score" first
+create view machine_learning_morphology_template as
+  select distinct
+	 version_id as bible_version_id,
+	 tokenisation_method_id,
+	 ml_method as calculation_algorithm,
+	 case
+	    when ml_method ilike 'Global%' then  null
+	    when ml_method = 'Y_Equals_X' then null
+	    else a.n
+	 end as algorithm_region_size_parameter
+    from tokenisation_methods, machine_learning_methods,
+	 bible_versions,
+	 generate_series(3,20) as a(n)
+  where version_worth_fetching;
+
+
+create view machine_learning_morphology_scoring_inventory as
+  select t.bible_version_id,
+	 t.tokenisation_method_id,
+	 t.calculation_algorithm,
+	 t.algorithm_region_size_parameter,
+	 max(when_added) as most_recently_added
+   from machine_learning_morphology_template as t left join machine_learning_morphology_scoring as s
+     on (t.bible_version_id = s.bible_version_id
+    and  t.tokenisation_method_id = s.tokenisation_method_id
+    and  t.calculation_algorithm = s.calculation_algorithm
+    and  (t.algorithm_region_size_parameter = s.algorithm_region_size_parameter
+	   or (t.algorithm_region_size_parameter is null and s.algorithm_region_size_parameter is null))
+	   )
+ group by 1,2,3,4	   ;
+
+
+create view machine_learning_morphology_scoring_absentees as
+   select inv.*, language
+     from machine_learning_morphology_scoring_inventory as inv
+     join bible_versions on (inv.bible_version_id = bible_versions.version_id)
+     join language_structure_identification_results using (language)
+    where language_structure_identification_results.tokenisation_method_id = inv.tokenisation_method_id
+      and most_recently_added is null;
+
+
 
 create materialized view machine_learning_morphology_best_scores as
-select language, calculation_algorithm, algorithm_region_size_parameter,
-  max(total_vocab_size_checked) as largest_vocab_size_checked,
-  max(proportion_correct) as best_score
- from machine_learning_morphology_scoring
- join bible_versions on (version_id = bible_version_id)
+select mlm_score_id,
+       language,
+       scoring.bible_version_id,
+       scoring.calculation_algorithm,
+       scoring.algorithm_region_size_parameter,
+       scoring.result_version,
+       scoring.answers_correct,
+       scoring.answers_wrong,
+       scoring.total_vocab_size_checked,
+       scoring.when_added,
+       computation_time,
+       computation_hostname,
+       proportion_correct,
+       rank() over (partition by language, scoring.calculation_algorithm,
+			    scoring.algorithm_region_size_parameter
+			    order by proportion_correct desc, scoring.bible_version_id)
+	     as rank_within_language_and_algorithm_and_region_size,
+       rank() over (partition by language, scoring.calculation_algorithm
+				   order by proportion_correct desc, scoring.bible_version_id, scoring.algorithm_region_size_parameter)
+	     as rank_within_language_and_algorithm,
+       rank() over (partition by scoring.bible_version_id, scoring.calculation_algorithm,
+			    scoring.algorithm_region_size_parameter
+			    order by proportion_correct desc)
+	     as rank_within_version_and_algorithm_and_region_size,
+       rank() over (partition by scoring.bible_version_id, scoring.calculation_algorithm
+				   order by proportion_correct desc, scoring.bible_version_id, scoring.algorithm_region_size_parameter)
+	     as rank_within_version_and_algorithm
+ from machine_learning_morphology_scoring as scoring
+ join machine_learning_morphology_scoring_inventory as inventory on
+   (scoring.bible_version_id = inventory.bible_version_id and
+    scoring.tokenisation_method_id = inventory.tokenisation_method_id and
+    scoring.calculation_algorithm = inventory.calculation_algorithm and
+    scoring.when_added = inventory.most_recently_added and
+    (scoring.algorithm_region_size_parameter = inventory.algorithm_region_size_parameter
+      or (scoring.algorithm_region_size_parameter is null and inventory.algorithm_region_size_parameter is null)
+      )
+      )
+ join bible_versions on (version_id = scoring.bible_version_id)
  join language_structure_identification_results using (language)
-where machine_learning_morphology_scoring.tokenisation_method_id = 'unigram'
+where scoring.tokenisation_method_id = 'unigram'
   and language_structure_identification_results.tokenisation_method_id = 'unigram'
-  group by 1,2,3;
+  and proportion_correct is not null;
 
--- Hmm... getting different values for "largest_vocab_size_checked" is very odd.
--- xon
 
-create materialized view machine_learning_morphology_best_score_rankings as
- select language, calculation_algorithm, algorithm_region_size_parameter,
-		largest_vocab_size_checked, best_score,
-		rank() over (partition by language, calculation_algorithm
-			     order by best_score desc, algorithm_region_size_parameter) as ranking
- from machine_learning_morphology_best_scores;
 
-create materialized view machine_learning_morphology_best_parameters_and_scores as
-  select language, calculation_algorithm, algorithm_region_size_parameter, largest_vocab_size_checked, best_score
-  from machine_learning_morphology_best_score_rankings
-  where ranking = 1;
 
-create materialized view machine_learning_morphology_summary as
- select language, global_padic_linear.largest_vocab_size_checked,
-	global_padic_linear.best_score as global_padic_linear_best_score,
-	global_siegel.best_score as global_siegel_best_score,
+-- Here onwards to debug and test
+-- I need to create a materialized view for "latest score" first
+
+
+
+create view broad_results_across_all_bible_versions as
+ select calculation_algorithm,
+	avg(100.0 * proportion_correct),
+	std(100.0 *
+    from machine_learning_morphology_best_scores
+   where rank_within_version_and_algorithm = 1
+  group by calculation_algorithm;
+
+
+
+create view broad_results_across_all_languages as
+ select calculation_algorithm,
+	avg(100.0 * proportion_correct)
+    from machine_learning_morphology_best_scores
+   where rank_within_language_and_algorithm = 1
+  group by calculation_algorithm;
+
+
+
+
+create materialized view machine_learning_morphology_summary_by_version as
+ select global_padic_linear.language,
+	global_padic_linear.bible_version_id as bible_version_id,
+	global_padic_linear.proportion_correct as global_padic_linear_proportion_correct,
+	global_siegel.proportion_correct as global_siegel_proportion_correct,
 	hybrid_siegel.algorithm_region_size_parameter as hybrid_siegel_best_region_size,
-	hybrid_siegel.best_score as hybrid_siegel_best_score,
+	hybrid_siegel.proportion_correct as hybrid_siegel_proportion_correct,
 	local_euclidean_siegel.algorithm_region_size_parameter as local_euclidean_siegel_best_region_size,
-	local_euclidean_siegel.best_score as local_euclidean_siegel_best_score,
+	local_euclidean_siegel.proportion_correct as local_euclidean_siegel_proportion_correct,
 	local_padic_linear.algorithm_region_size_parameter as local_padic_linear_best_region_size,
-	local_padic_linear.best_score as local_padic_linear_best_score
-  from machine_learning_morphology_best_parameters_and_scores as global_padic_linear
-  join machine_learning_morphology_best_parameters_and_scores as global_siegel using (language)
-  join machine_learning_morphology_best_parameters_and_scores as hybrid_siegel using (language)
-  join machine_learning_morphology_best_parameters_and_scores as local_euclidean_siegel using (language)
-  join machine_learning_morphology_best_parameters_and_scores as local_padic_linear using (language)
+	local_padic_linear.proportion_correct as local_padic_linear_proportion_correct,
+	y_equals_x.proportion_correct as y_equals_x_proportion_correct
+  from machine_learning_morphology_best_scores as global_padic_linear
+  join machine_learning_morphology_best_scores as global_siegel using (bible_version_id)
+  join machine_learning_morphology_best_scores as hybrid_siegel using (bible_version_id)
+  join machine_learning_morphology_best_scores as local_euclidean_siegel using (bible_version_id)
+  join machine_learning_morphology_best_scores as local_padic_linear using (bible_version_id)
+  join machine_learning_morphology_best_scores as y_equals_x using (bible_version_id)
   where global_padic_linear.calculation_algorithm = 'GlobalPadicLinear'
     and global_siegel.calculation_algorithm = 'GlobalSiegel'
     and hybrid_siegel.calculation_algorithm = 'HybridSiegel'
     and local_euclidean_siegel.calculation_algorithm = 'LocalEuclideanSiegel'
-    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'   ;
- -- also compare against Y_Equals_X algorithm
+    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'
+    and y_equals_x.calculation_algorithm = 'Y_Equals_X'
+    and global_padic_linear.rank_within_version_and_algorithm = 1
+    and global_siegel.rank_within_version_and_algorithm = 1
+    and hybrid_siegel.rank_within_version_and_algorithm = 1
+    and local_euclidean_siegel.rank_within_version_and_algorithm = 1
+    and local_padic_linear.rank_within_version_and_algorithm = 1
+    and y_equals_x.rank_within_version_and_algorithm = 1;
+
+
+
+
+
+
+create materialized view machine_learning_morphology_summary_by_language as
+ select language,
+	global_padic_linear.bible_version_id as global_padic_bible_version_id,
+	global_padic_linear.proportion_correct as global_padic_linear_proportion_correct,
+	global_siegel.bible_version_id as global_siegel_bible_version_id,
+	global_siegel.proportion_correct as global_siegel_proportion_correct,
+	hybrid_siegel.bible_version_id as hybrid_siegel_bible_version_id,
+	hybrid_siegel.algorithm_region_size_parameter as hybrid_siegel_best_region_size,
+	hybrid_siegel.proportion_correct as hybrid_siegel_proportion_correct,
+	local_euclidean_siegel.bible_version_id as local_euclidean_bible_version_id,
+	local_euclidean_siegel.algorithm_region_size_parameter as local_euclidean_siegel_best_region_size,
+	local_euclidean_siegel.proportion_correct as local_euclidean_siegel_proportion_correct,
+	local_padic_linear.bible_version_id as local_padic_linear_bible_version_id,
+	local_padic_linear.algorithm_region_size_parameter as local_padic_linear_best_region_size,
+	local_padic_linear.proportion_correct as local_padic_linear_proportion_correct,
+	y_equals_x.bible_version_id as y_equals_x_bible_version_id,
+	y_equals_x.proportion_correct as y_equals_x_proportion_correct
+  from machine_learning_morphology_best_scores as global_padic_linear
+  join machine_learning_morphology_best_scores as global_siegel using (language)
+  join machine_learning_morphology_best_scores as hybrid_siegel using (language)
+  join machine_learning_morphology_best_scores as local_euclidean_siegel using (language)
+  join machine_learning_morphology_best_scores as local_padic_linear using (language)
+  join machine_learning_morphology_best_scores as y_equals_x using (language)
+  where global_padic_linear.calculation_algorithm = 'GlobalPadicLinear'
+    and global_siegel.calculation_algorithm = 'GlobalSiegel'
+    and hybrid_siegel.calculation_algorithm = 'HybridSiegel'
+    and local_euclidean_siegel.calculation_algorithm = 'LocalEuclideanSiegel'
+    and local_padic_linear.calculation_algorithm = 'LocalPadicLinear'
+    and y_equals_x.calculation_algorithm = 'Y_Equals_X'
+    and global_padic_linear.rank_within_language_and_algorithm = 1
+    and global_siegel.rank_within_language_and_algorithm = 1
+    and hybrid_siegel.rank_within_language_and_algorithm = 1
+    and local_euclidean_siegel.rank_within_language_and_algorithm = 1
+    and local_padic_linear.rank_within_language_and_algorithm = 1
+    and y_equals_x.rank_within_language_and_algorithm = 1;
+
+
+----------------------------------------------------------------------
