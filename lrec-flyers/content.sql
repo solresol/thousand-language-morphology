@@ -18,10 +18,12 @@ select '\vocabitem{' ||
     and singular.noun_number = 'singular'
     and plural.noun_number = 'plural'
     and plural.assessment = 'correct'
-    and language not in ('deu', 'epo', 'fra')
+    and language not in ('deu', 'epo', 'fra', 'urd', 'aeb', 'sin', 'ary', 'mar',
+    'hin', 'ben')
     and english_translation != singular.target_language_assessed_word
     and english_translation != plural.target_language_assessed_word
     and (language_name != 'Gunwinggu' or (singular.target_language_assessed_word not in ('dollars', 'tax')))
+    and lemma not in ('τάλαντον', 'δηνάριον', 'μνᾶ', 'πλοῖον', 'σῶμα', 'γραμματεύς', 'σκεῦος', 'ῥῆμα', 'κλῆρος')
     ;
 
 
