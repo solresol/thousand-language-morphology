@@ -1,0 +1,26 @@
+\documentclass[10pt]{article}
+\usepackage{fontspec}
+\setmainfont[Ligatures=TeX]{XITS}
+\setlength{\parindent}{0mm}
+\begin{document}
+\newcommand{\vocabitem}[9]{
+  \framebox{
+    \parbox{8cm}{
+      #3 {\bf #1} #2
+      
+      {\bf Koine Greek Lemma: #5} \\
+      {\bf English gloss:} #4 \\
+
+      {\bf Singular:} #8
+      {\bf Plural:} #9
+    }
+  }
+}
+
+\vocabitem{Urdu}{Indo-European}{urd}{child}{παιδίον}{neuter}{accusative}{बच्चे}{बच्चों}
+
+%\input{content.tex}
+
+%\vocabitem{1}{2}{3}{4}{5}{6}{7}{8}{9}
+
+\end{document}
