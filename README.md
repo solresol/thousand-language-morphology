@@ -13,9 +13,6 @@ deducing from a very small number of examples how the language changes the forms
 of words to represent their roles in a sentence.
 
 
-This repo will contain word-form pairs from 1000 languages.
-
-
 Building from scratch
 ---------------------
 
