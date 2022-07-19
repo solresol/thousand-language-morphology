@@ -1,9 +1,11 @@
 Thousand Language Morphology Database
 =====================================
 
-This project is part of Greg Baker's postgrad studies.
+(All author information redacted until the end of 2022, where I'll put it back
+again. I just had a paper desk-rejected because of an anonymity fail because
+of this README.)
 
-Greg's claim is that p-adic metrics are ideally suited to various natural
+My claim is that p-adic metrics are ideally suited to various natural
 language processing machine learning tasks -- better than Euclidean metrics.
 
 One of the tasks where p-adics are likely to be helpful is in grammar morphology:
